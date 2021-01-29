@@ -4,8 +4,11 @@ services:
     build:
       context: ./api/
       dockerfile: Dockerfile-dev
-    env_file:
-      - ./.env
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
     ports:
       - "80:80"
     volumes:
@@ -19,7 +22,6 @@ services:
     ports:
       - '27017-27019:27017-27019'
     volumes:
-      - ./database/init-database.sh:/docker-entrypoint-initdb.d/init-database.sh:ro
       - mongodb_data_container:/data/database
 
 volumes:

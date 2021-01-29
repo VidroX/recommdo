@@ -1,7 +1,7 @@
 # Project-specific
 .env
 api/.env
-*/.idea
+**/.idea/
 api/venv
 
 # Byte-compiled / optimized / DLL files

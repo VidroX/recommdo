@@ -1,9 +1,12 @@
 aniso8601==7.0.0
+argon2-cffi==20.1.0
 asyncio==3.4.3
+cffi==1.14.4
 click==7.1.2
 dnspython==2.0.0
 email-validator==1.1.2
 fastapi==0.63.0
+fastapi-jwt-auth==0.5.0
 graphene==2.1.8
 graphql-core==2.3.2
 graphql-relay==2.0.1
@@ -12,7 +15,9 @@ idna==3.0
 motor==2.3.0
 odmantic==0.3.2
 promise==2.3
+pycparser==2.20
 pydantic==1.7.3
+PyJWT==1.7.1
 pymongo==3.11.2
 python-dotenv==0.15.0
 Rx==1.6.1

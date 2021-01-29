@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -17,3 +18,7 @@ DATABASE_NAME = os.getenv("DATABASE_NAME")
 APP_NAME = os.getenv("APP_NAME")
 APP_DESCRIPTION = os.getenv("APP_DESCRIPTION")
 APP_VERSION = os.getenv("APP_VERSION")
+
+
+class JWTSettings(BaseModel):
+    authjwt_secret_key: str = os.getenv("JWT_SECRET")
