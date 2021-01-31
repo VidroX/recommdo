@@ -50,3 +50,13 @@ def gql_jwt_optional(func):
 
         return func(*args, **kwargs)
     return gql_jwt_optional_decorator
+
+
+def gql_jwt(func):
+    def gql_jwt_decorator(*args, **kwargs):
+        jwt = get_jwt_instance(*args, **kwargs)
+
+        kwargs['jwt'] = jwt
+
+        return func(*args, **kwargs)
+    return gql_jwt_decorator

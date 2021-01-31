@@ -4,6 +4,7 @@ from graphene.relay import Node
 
 from app.api.decorators.AuthDecorators import gql_jwt_optional, gql_jwt_required
 from app.api.models.UserModel import UserModel
+from app.api.mutations.UserMutations import Login
 from app.database.database import db
 from app.database.models.User import User
 from app.logger import logger
@@ -21,8 +22,7 @@ class ApiQuery(graphene.ObjectType):
 
 
 class ApiMutation(graphene.ObjectType):
-    pass
+    login = Login.Field()
 
 
-schema = graphene.Schema(query=ApiQuery, types=[UserModel])
-# schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[UserModel])
+schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[UserModel])

@@ -9,6 +9,7 @@ class User(Model, ABC):
     first_name: str
     last_name: str
     middle_name: str
+    email: str
     password: str
     access_level: AccessLevel = Reference()
 
