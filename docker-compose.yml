@@ -10,11 +10,20 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
     ports:
-      - "80:80"
+      - "8080:8080"
     volumes:
       - ./api/app:/app/app
     links:
       - mongo
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile-dev
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/frontend
   mongo:
     image: mongo:latest
     env_file:

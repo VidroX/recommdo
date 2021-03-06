@@ -1,0 +1,11 @@
+FROM mhart/alpine-node:latest
+
+WORKDIR /frontend
+
+COPY package.json .env yarn.lock ./
+
+RUN yarn
+
+COPY . .
+
+CMD ["yarn", "dev"]

@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Optional
 
 from odmantic import Model, Reference
 
@@ -8,7 +9,7 @@ from app.database.models.AccessLevel import AccessLevel
 class User(Model, ABC):
     first_name: str
     last_name: str
-    middle_name: str
+    middle_name: Optional[str] = ""
     email: str
     password: str
     access_level: AccessLevel = Reference()

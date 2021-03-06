@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY ./app /app/app
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--loop", "asyncio", "--debug", "--reload-dir", "/app"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--loop", "asyncio", "--debug", "--reload-dir", "/app"]

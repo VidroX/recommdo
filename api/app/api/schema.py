@@ -4,10 +4,9 @@ from graphene.relay import Node
 
 from app.api.decorators.AuthDecorators import gql_jwt_optional, gql_jwt_required
 from app.api.models.UserModel import UserModel
-from app.api.mutations.UserMutations import Login
+from app.api.mutations.UserMutations import Login, Register
 from app.database.database import db
 from app.database.models.User import User
-from app.logger import logger
 
 
 class ApiQuery(graphene.ObjectType):
@@ -17,12 +16,12 @@ class ApiQuery(graphene.ObjectType):
     @staticmethod
     @gql_jwt_required
     async def resolve_users(self, info, **kwargs):
-        jwt = kwargs['jwt']
         return await db.engine.find(User)
 
 
 class ApiMutation(graphene.ObjectType):
     login = Login.Field()
+    register = Register.Field()
 
 
 schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[UserModel])

@@ -3,6 +3,7 @@ from fastapi_jwt_auth import AuthJWT
 from starlette.datastructures import URL
 from starlette.graphql import GraphQLApp
 from graphql.execution.executors.asyncio import AsyncioExecutor
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 
 from app import settings
@@ -16,6 +17,13 @@ app = FastAPI(
     version=settings.APP_VERSION
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @AuthJWT.load_config
 def get_config():
