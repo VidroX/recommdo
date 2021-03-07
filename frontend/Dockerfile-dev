@@ -1,11 +1,15 @@
 FROM mhart/alpine-node:latest
 
-WORKDIR /frontend
+ENV PORT 3000
 
-COPY package.json .env yarn.lock ./
+RUN mkdir -p /usr/src/frontend
+WORKDIR /usr/src/frontend
 
+COPY package*.json yarn.lock ./
 RUN yarn
 
 COPY . .
 
-CMD ["yarn", "dev"]
+EXPOSE 3000
+
+CMD "yarn" "dev"
