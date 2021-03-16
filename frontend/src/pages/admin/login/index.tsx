@@ -8,7 +8,13 @@ import Layout from '../../../components/Layout';
 import { useTranslation } from 'next-i18next';
 import Input from '../../../components/inputs/Input';
 import Button from '../../../components/buttons/Button';
-import { Formik } from 'formik';
+import { Formik, FormikHelpers } from 'formik';
+import * as Yup from 'yup';
+
+interface LoginFormValues {
+	email: string;
+	password: string;
+}
 
 const LoginPage = () => {
 	const { t } = useTranslation('auth');
@@ -39,31 +45,22 @@ const LoginPage = () => {
 		}
 	}, [route, locale, defaultLocale, canceled]);
 
-	const validateForm = (values: any) => {
-		const errors = { email: null, password: null };
-
-		if (!values.email) {
-			errors.email = t('requiredField');
-		} else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) {
-			errors.email = t('invalidEmail');
-		}
-
-		if (!values.password) {
-			errors.password = t('requiredField');
-		} else if (values.password?.length < 6) {
-			errors.password = t('smallPassword');
-		}
-
-		return errors;
+	const submitForm = async (values: LoginFormValues, { setSubmitting }: FormikHelpers<LoginFormValues>) => {
+		await new Promise((resolve) => {
+			setTimeout(() => {
+				resolve(true);
+			}, 2000);
+		});
+		console.log(values);
+		setSubmitting(false);
 	};
 
-	const submitForm = (values: any, { setSubmitting }: any) => {
-		setSubmitting(true);
-		setTimeout(() => {
-			alert(JSON.stringify(values, null, 2));
-			setSubmitting(false);
-		}, 400);
-	};
+	const LoginSchema = Yup.object().shape({
+		email: Yup.string().email(t('invalidEmail')).required(t('requiredField')),
+		password: Yup.string()
+			.min(6, t('smallPassword'))
+			.required(t('requiredField')),
+	});
 
 	return (
 		<Layout
@@ -80,7 +77,7 @@ const LoginPage = () => {
 					</p>
 					<Formik
 						initialValues={{ email: '', password: '' }}
-						validate={validateForm}
+						validationSchema={LoginSchema}
 						onSubmit={submitForm}>
 						{({
 							values,

@@ -3,6 +3,7 @@ import NavigationBar from './nav/NavigationBar';
 import Head from 'next/head';
 import { config } from '../config';
 import { useTranslation } from 'next-i18next';
+import { GoogleFonts } from 'next-google-fonts';
 
 interface DefaultLayoutProps {
 	pageName?: string;
@@ -33,6 +34,7 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 
 	return (
 		<>
+			<GoogleFonts href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" />
 			<Head>
 				<title>
 					{pageName?.length > 0

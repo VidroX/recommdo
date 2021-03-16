@@ -15,8 +15,6 @@ interface ButtonProps {
 
 const defaultClasses = [
 	'rounded',
-	'px-8',
-	'py-2',
 	'bg-primary',
 	'text-white',
 	'focus:outline-none',
@@ -24,12 +22,12 @@ const defaultClasses = [
 	'focus:ring-opacity-50',
 	'focus:ring-primary',
 	'duration-75',
+	'disabled:select-none',
+	'disabled:cursor-default',
 ];
 
 const outlinedClasses = [
 	'rounded',
-	'px-8',
-	'py-2',
 	'bg-transparent',
 	'border-2',
 	'border-opacity-50',
@@ -42,6 +40,8 @@ const outlinedClasses = [
 	'hover:bg-primary',
 	'hover:text-white',
 	'duration-75',
+	'disabled:select-none',
+	'disabled:cursor-default',
 ];
 
 const Button: React.FC<ButtonProps> = ({
@@ -58,8 +58,8 @@ const Button: React.FC<ButtonProps> = ({
 
 	const renderButtonContents = () => {
 		return (
-			<div className="flex flex-row items-center font-semibold">
-				{loading && <CgSpinner className="animate-spin w-5 h-5 mr-2" />}
+			<div className={'flex flex-row items-center font-semibold my-2' + (loading ? ' ml-3 mr-5' : ' mx-8')}>
+				{loading && <CgSpinner className="animate-spin w-5 h-5 mr-3" />}
 				{children}
 			</div>
 		);
