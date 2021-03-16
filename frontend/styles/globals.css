@@ -1,3 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #02C2A8;
+}
+
 html,
 body {
   padding: 0;
