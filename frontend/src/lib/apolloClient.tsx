@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client';
+import { ApolloClient, ApolloLink, createHttpLink, InMemoryCache } from '@apollo/client';
 import { config } from '../config';
 import { setContext } from '@apollo/client/link/context';
+import { onError } from '@apollo/client/link/error';
 
 let apolloClient: ApolloClient<any>;
 
@@ -20,10 +21,20 @@ const authLink = setContext((_, { headers }) => {
 	};
 });
 
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+	if (graphQLErrors && config.general.isDev) {
+		graphQLErrors.map(({ message, locations, path, extensions }) =>
+			console.log(
+				`[GraphQL error]: Code: ${extensions?.code}, Message: ${message}, Location: ${locations}, Path: ${path}`
+			)
+		);
+	}
+});
+
 const createApolloClient = (): ApolloClient<any> => {
 	return new ApolloClient({
 		ssrMode: typeof window === 'undefined',
-		link: authLink.concat(httpLink),
+		link: ApolloLink.from([errorLink, authLink, httpLink]),
 		cache: new InMemoryCache(),
 	});
 };

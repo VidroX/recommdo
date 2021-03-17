@@ -1,5 +1,6 @@
 export const config = {
 	general: {
+		isDev: true,
 		appName: 'Recommdo',
 	},
 	i18n: {
@@ -9,5 +10,6 @@ export const config = {
 	api: {
 		url: 'http://127.0.0.1:8080/gql',
 		authTokenLocation: 'ut',
+		refreshTokenLocation: 'rt',
 	},
 };

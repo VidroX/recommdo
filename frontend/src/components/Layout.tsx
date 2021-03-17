@@ -51,7 +51,7 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 			{showFooter && (
 				<footer className="grid grid-cols-1 mt-4">
 					<div className="md:container md:mx-auto">
-						&copy;{config.general.appName}, {new Date().getFullYear()}. {t('rightsReserved')}.
+						&copy; {config.general.appName}, {new Date().getFullYear()}. {t('rightsReserved')}.
 					</div>
 				</footer>
 			)}

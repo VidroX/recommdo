@@ -1,0 +1,15 @@
+{
+  "name": "Recommdo GraphQL Schema",
+  "schemaPath": "recommdo.graphql",
+  "extensions": {
+    "endpoints": {
+      "Default GraphQL Endpoint": {
+        "url": "http://127.0.0.1:8080/gql",
+        "headers": {
+          "user-agent": "JS GraphQL"
+        },
+        "introspect": true
+      }
+    }
+  }
+}

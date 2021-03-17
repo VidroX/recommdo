@@ -1,0 +1,61 @@
+# This file was generated based on ".graphqlconfig". Do not edit manually.
+
+schema {
+    query: ApiQuery
+    mutation: ApiMutation
+}
+
+"An object with an ID"
+interface Node {
+    "The ID of the object."
+    id: ID!
+}
+
+type AccessLevelModel {
+    description: String!
+    isStaff: Boolean!
+    level: Int!
+    name: String!
+}
+
+type ApiMutation {
+    login(email: String!, password: String!): Login
+    register(accessLevel: AccessLevelInput, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
+}
+
+type ApiQuery {
+    "The ID of the object"
+    node(id: ID!): Node
+    users: [UserModel]
+}
+
+type Login {
+    tokens: TokenData
+    user: UserModel
+}
+
+type Register {
+    tokens: TokenData
+    user: UserModel
+}
+
+type TokenData {
+    accessToken: String
+    refreshToken: String
+}
+
+type UserModel {
+    accessLevel: AccessLevelModel!
+    email: String!
+    firstName: String!
+    id: ID!
+    lastName: String!
+    middleName: String
+}
+
+input AccessLevelInput {
+    description: String!
+    isStaff: Boolean!
+    level: Int!
+    name: String!
+}

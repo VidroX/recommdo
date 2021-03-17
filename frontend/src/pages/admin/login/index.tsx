@@ -10,6 +10,9 @@ import Input from '../../../components/inputs/Input';
 import Button from '../../../components/buttons/Button';
 import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
+import { useMutation } from '@apollo/client';
+import { LOGIN_MUTATION } from '../../../apollo/mutations/auth';
+import jwt from 'jsonwebtoken';
 
 interface LoginFormValues {
 	email: string;
@@ -22,6 +25,12 @@ const LoginPage = () => {
 	const { route, push, locale, defaultLocale } = useRouter();
 
 	const [canceled, setCanceled] = useState(false);
+	const [apiErrors, setApiErrors] = useState<LoginFormValues>({
+		email: '',
+		password: '',
+	});
+
+	const [login] = useMutation(LOGIN_MUTATION);
 
 	useEffect(() => {
 		return () => {
@@ -45,21 +54,66 @@ const LoginPage = () => {
 		}
 	}, [route, locale, defaultLocale, canceled]);
 
-	const submitForm = async (values: LoginFormValues, { setSubmitting }: FormikHelpers<LoginFormValues>) => {
-		await new Promise((resolve) => {
-			setTimeout(() => {
-				resolve(true);
-			}, 2000);
-		});
-		console.log(values);
+	const submitForm = async (
+		values: LoginFormValues,
+		{ setSubmitting }: FormikHelpers<LoginFormValues>
+	) => {
+		let success = false;
+
+		try {
+			const {
+				data: { login: userData },
+			} = await login({
+				variables: {
+					email: values.email,
+					password: values.password,
+				},
+			});
+
+			const tokens = userData?.tokens;
+
+			if (tokens != null && tokens?.accessToken != null && typeof window !== 'undefined') {
+				await localStorage.setItem(config.api.authTokenLocation, tokens.accessToken);
+
+				if (tokens?.refreshToken != null) {
+					await localStorage.setItem(config.api.refreshTokenLocation, tokens.refreshToken);
+				}
+			}
+
+			success = true;
+		} catch (e) {
+			const errors = e?.networkError?.result?.errors;
+
+			if (errors != null && errors?.length > 0) {
+				const currentError = errors[0];
+
+				switch (currentError.extensions.code) {
+					case 100: {
+						!canceled &&
+							setApiErrors({
+								email: t('incorrectEmailPassword'),
+								password: t('incorrectEmailPassword'),
+							});
+						break;
+					}
+				}
+			}
+		}
+
 		setSubmitting(false);
+
+		if (success) {
+			try {
+				await push('/', '/', { locale: locale ?? defaultLocale });
+			} catch (e) {
+				config.general.isDev && console.log(e);
+			}
+		}
 	};
 
 	const LoginSchema = Yup.object().shape({
 		email: Yup.string().email(t('invalidEmail')).required(t('requiredField')),
-		password: Yup.string()
-			.min(6, t('smallPassword'))
-			.required(t('requiredField')),
+		password: Yup.string().min(6, t('smallPassword')).required(t('requiredField')),
 	});
 
 	return (
@@ -70,7 +124,7 @@ const LoginPage = () => {
 			showFooter={false}
 			backgroundColor={'#e6e6e6'}>
 			<div className="h-full flex flex-row items-center">
-				<div className="max-w-full min-w-full md:min-w-450 md:max-w-450 mx-auto bg-white shadow-md rounded p-4">
+				<div className="max-w-full min-w-full md:rounded md:min-w-450 md:max-w-450 mx-auto bg-white shadow-md p-4">
 					<p className="text-xl">
 						{t('title')}{' '}
 						<span className="font-semibold text-primary">{config.general.appName}</span>
@@ -99,7 +153,13 @@ const LoginPage = () => {
 									onChange={handleChange}
 									onBlur={handleBlur}
 									value={values.email}
-									error={errors.email && touched.email ? errors.email : null}
+									error={
+										apiErrors.email?.length > 0
+											? apiErrors.email
+											: errors.email && touched.email
+											? errors.email
+											: null
+									}
 								/>
 								<Input
 									type="password"
@@ -111,7 +171,13 @@ const LoginPage = () => {
 									onChange={handleChange}
 									onBlur={handleBlur}
 									value={values.password}
-									error={errors.password && touched.password ? errors.password : null}
+									error={
+										apiErrors.password?.length > 0
+											? apiErrors.password
+											: errors.password && touched.password
+											? errors.password
+											: null
+									}
 								/>
 								<div className="flex flex-row justify-end">
 									<Button submitButton loading={isSubmitting} disabled={isSubmitting}>
