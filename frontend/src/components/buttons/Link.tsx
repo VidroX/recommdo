@@ -11,7 +11,7 @@ interface CustomLinkProps {
 
 const Link: React.FC<CustomLinkProps> = ({
 	locale = null,
-	href = '',
+	href = '#',
 	className = '',
 	children,
 }) => {

@@ -12,7 +12,6 @@ import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '../../../apollo/mutations/auth';
-import jwt from 'jsonwebtoken';
 
 interface LoginFormValues {
 	email: string;

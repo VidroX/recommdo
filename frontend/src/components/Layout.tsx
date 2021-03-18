@@ -46,11 +46,11 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 			</Head>
 			{showNavbar && <NavigationBar />}
 			<main className={'grid grid-cols-1'.concat(fullHeight ? ' h-full' : '')}>
-				<div className="md:container md:mx-auto">{children}</div>
+				<div className="md:container md:mx-auto px-4">{children}</div>
 			</main>
 			{showFooter && (
 				<footer className="grid grid-cols-1 mt-4">
-					<div className="md:container md:mx-auto">
+					<div className="md:container md:mx-auto px-4">
 						&copy; {config.general.appName}, {new Date().getFullYear()}. {t('rightsReserved')}.
 					</div>
 				</footer>

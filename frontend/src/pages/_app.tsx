@@ -50,13 +50,7 @@ function Application({ Component, pageProps }: AppProps) {
 	return (
 		<ApolloProvider client={apolloClient}>
 			{userAuthorized ? (
-				route === '/admin/login' ? (
-					<Component {...pageProps} />
-				) : (
-					<Layout showNavbar={true} showFooter={true}>
-						<Component {...pageProps} />
-					</Layout>
-				)
+				<Component {...pageProps} />
 			) : (
 				<Spinner size={56} overlayMode overlayColor="transparent" />
 			)}
