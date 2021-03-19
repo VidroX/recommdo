@@ -58,7 +58,10 @@ const Button: React.FC<ButtonProps> = ({
 
 	const renderButtonContents = () => {
 		return (
-			<div className={'flex flex-row items-center font-semibold my-2' + (loading ? ' ml-3 mr-5' : ' mx-8')}>
+			<div
+				className={
+					'flex flex-row items-center font-semibold my-2' + (loading ? ' ml-3 mr-5' : ' mx-8')
+				}>
 				{loading && <CgSpinner className="animate-spin w-5 h-5 mr-3" />}
 				{children}
 			</div>

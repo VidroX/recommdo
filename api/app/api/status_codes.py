@@ -3,6 +3,9 @@ STATUS_CODE = {
     0: "Invalid or missing auth header",
     1: "Unable to get auth instance",
     2: "Invalid auth header",
+    3: "Invalid or missing refresh token",
+    4: "Invalid refresh token",
+    5: "Given auth token is revoked or expired",
     # General
     50: "Not all required fields present",
     51: "You do not have enough permission to do this",

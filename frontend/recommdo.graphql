@@ -20,6 +20,7 @@ type AccessLevelModel {
 
 type ApiMutation {
     login(email: String!, password: String!): Login
+    refresh: Refresh
     register(accessLevel: AccessLevelInput, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
 }
 
@@ -32,6 +33,10 @@ type ApiQuery {
 type Login {
     tokens: TokenData
     user: UserModel
+}
+
+type Refresh {
+    tokens: TokenData
 }
 
 type Register {

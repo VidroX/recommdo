@@ -1,38 +1,83 @@
 import * as React from 'react';
 import { config } from '../../config';
-import styles from '../../../styles/layout.module.css';
 import Link from '../buttons/Link';
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+import { useState } from 'react';
+import { IoLogOutOutline } from 'react-icons/io5';
+import { RiMenu4Fill, RiCloseFill } from 'react-icons/ri';
 
-interface NavigationBarProps {
-	selectedItem?: string;
-}
-
-const NavigationBar = ({ selectedItem = '' }: NavigationBarProps) => {
+const NavigationBar = () => {
 	const { t } = useTranslation('auth');
 
+	const { route, locale, defaultLocale } = useRouter();
+
+	const [currentLocale] = useState(locale ?? defaultLocale);
+	const [navShown, setNavShown] = useState(false);
+
 	const linkStyles = [
-		"hover:border-primary",
-		"hover:border-b-2",
-		"hover:border-opacity-50",
-		"hover:text-primary"
-	];
+		'hover:bg-gray-200',
+		'duration-100',
+		'rounded-b',
+		'p-4',
+		'flex',
+		'flex-row',
+		'justify-center',
+		'items-center',
+		'h-full',
+	].join(' ');
+
+	const selectedLinkStyles = [
+		'bg-gray-200',
+		'rounded-b',
+		'p-4',
+		'flex',
+		'flex-row',
+		'justify-center',
+		'items-center',
+		'h-full',
+	].join(' ');
+
+	const shownNavStyles = 'w-full md:w-auto rounded-t md:rounded-t-none';
+
+	const toggleNavBar = () => {
+		setNavShown((shown) => !shown);
+	};
 
 	return (
-		<header className="grid grid-cols-1 mb-4">
-			<div className="md:container md:mx-auto py-3 flex flex-row px-4">
-				<div className={'mr-4 font-bold text-primary py-1' + styles.logo}>
-					{config.general.appName}
+		<header className="md:mx-auto max-w-7xl w-full flex flex-row px-4 mb-4">
+			<nav className="flex flex-col md:flex-row flex-1">
+				<div className="flex flex-row flex-1 md:flex-none">
+					<Link href="/" locale={currentLocale} className="font-bold text-primary py-4 pr-2 mr-4">
+						{config.general.appName}
+					</Link>
+					<div className="md:hidden flex flex-1 justify-end items-center">
+						<button className={linkStyles + ' focus:outline-none border-0'} onClick={toggleNavBar}>
+							{!navShown ? <RiMenu4Fill size={20} /> : <RiCloseFill size={20} />}
+						</button>
+					</div>
 				</div>
-				<nav className="flex flex-1">
-					<div className="flex flex-1 justify-start">
-						<Link href="#" className={linkStyles.join(' ')}>123</Link>
-					</div>
-					<div className="flex flex-1 justify-end">
-						<Link href="/admin/logout/" className={linkStyles.join(' ')}>{t('logout')}</Link>
-					</div>
-				</nav>
-			</div>
+				<div
+					className={
+						navShown
+							? 'flex flex-col md:flex-row md:flex-1 duration-300'
+							: 'hidden md:flex md:flex-row md:flex-1 duration-300'
+					}>
+					<ul className="flex flex-col md:flex-row md:flex-1">
+						<li className="flex mt-2 md:mt-0 md:mr-2"></li>
+					</ul>
+					<ul className="flex flex-col md:flex-row">
+						<li className="flex mt-1 md:mt-0 md:mr-2">
+							<Link
+								href="/admin/logout/"
+								className={linkStyles + ' ' + shownNavStyles}
+								locale={currentLocale}>
+								<IoLogOutOutline size={20} className="mr-1" /> {t('logout')}
+							</Link>
+						</li>
+					</ul>
+				</div>
+			</nav>
 		</header>
 	);
 };

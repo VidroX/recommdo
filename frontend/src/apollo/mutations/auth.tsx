@@ -23,3 +23,13 @@ export const LOGIN_MUTATION = gql`
 		}
 	}
 `;
+
+export const REFRESH_TOKEN_MUTATION = gql`
+    mutation {
+        refresh {
+            tokens {
+                accessToken
+            }
+        }
+    }
+`;

@@ -3,6 +3,15 @@ import { ApolloClient, ApolloLink, createHttpLink, InMemoryCache } from '@apollo
 import { config } from '../config';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import { REFRESH_TOKEN_MUTATION } from '../apollo/mutations/auth';
+import {
+	checkTokenValidity,
+	checkUserTokens,
+	getNewAccessToken,
+	getUserToken,
+	setAccessToken,
+	TOKEN_TYPES,
+} from '../utils/userUtils';
 
 let apolloClient: ApolloClient<any>;
 
@@ -11,23 +20,63 @@ const httpLink = createHttpLink({
 });
 
 const authLink = setContext((_, { headers }) => {
-	const token = localStorage.getItem(config.api.authTokenLocation);
+	const accessToken = getUserToken(TOKEN_TYPES.ACCESS);
+	const refreshToken = getUserToken(TOKEN_TYPES.REFRESH);
+
+	if (accessToken == null && refreshToken == null) {
+		return {
+			headers: {
+				...headers,
+			},
+		};
+	}
 
 	return {
 		headers: {
 			...headers,
-			authorization: token ? `Bearer ${token}` : '',
+			Authorization: accessToken
+				? `Bearer ${accessToken}`
+				: refreshToken
+				? `Bearer ${refreshToken}`
+				: '',
 		},
 	};
 });
 
-const errorLink = onError(({ graphQLErrors, networkError }) => {
-	if (graphQLErrors && config.general.isDev) {
-		graphQLErrors.map(({ message, locations, path, extensions }) =>
-			console.log(
-				`[GraphQL error]: Code: ${extensions?.code}, Message: ${message}, Location: ${locations}, Path: ${path}`
-			)
-		);
+const errorLink = onError(({ operation, graphQLErrors, forward }) => {
+	if (graphQLErrors) {
+		for (const err of graphQLErrors) {
+			if (
+				err?.extensions?.code != null &&
+				err.extensions.code >= 1 &&
+				err.extensions.code <= 5 &&
+				checkTokenValidity(TOKEN_TYPES.REFRESH)
+			) {
+				const oldHeaders = operation.getContext().headers;
+				const accessToken = getNewAccessToken(apolloClient, oldHeaders);
+
+				if (accessToken != null) {
+					operation.setContext({
+						headers: {
+							...oldHeaders,
+							Authorization: `Bearer ${accessToken}`,
+						},
+					});
+
+					return forward(operation);
+				}
+			} else {
+				checkUserTokens();
+			}
+		}
+
+		if (config.general.isDev) {
+			graphQLErrors.map(({ message, locations, path, extensions }) =>
+				console.log(
+					`[GraphQL error]: Code: ${extensions?.code}, Message: ${message}, Location: ${locations}, Path: ${path}`
+				)
+			);
+		}
 	}
 });
 
@@ -59,6 +108,6 @@ export const initializeApollo = (initialState: any = null): ApolloClient<any> =>
 	return _apolloClient;
 };
 
-export const useApollo = (initialState: any): any => {
+export const useApollo = (initialState: any): ApolloClient<any> => {
 	return useMemo(() => initializeApollo(initialState), [initialState]);
 };

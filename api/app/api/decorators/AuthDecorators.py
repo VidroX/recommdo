@@ -1,5 +1,5 @@
 from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import MissingTokenError, InvalidHeaderError
+from fastapi_jwt_auth.exceptions import MissingTokenError, InvalidHeaderError, RevokedTokenError
 from graphql import GraphQLError, ResolveInfo
 
 from app.api.status_codes import STATUS_CODE
@@ -30,11 +30,32 @@ def gql_jwt_required(func):
             raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
         except InvalidHeaderError:
             raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
+        except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         kwargs['jwt'] = jwt
 
         return func(*args, **kwargs)
     return gql_jwt_required_decorator
+
+
+def gql_refresh_jwt_required(func):
+    def gql_refresh_jwt_required_decorator(*args, **kwargs):
+        jwt = get_jwt_instance(*args, **kwargs)
+
+        try:
+            jwt.jwt_refresh_token_required()
+        except MissingTokenError:
+            raise GraphQLError(STATUS_CODE[3], extensions={'code': 3})
+        except InvalidHeaderError:
+            raise GraphQLError(STATUS_CODE[4], extensions={'code': 4})
+        except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+
+        kwargs['jwt'] = jwt
+
+        return func(*args, **kwargs)
+    return gql_refresh_jwt_required_decorator
 
 
 def only_admin(func):
@@ -47,6 +68,8 @@ def only_admin(func):
             raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
         except InvalidHeaderError:
             raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
+        except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         subject = jwt.get_jwt_subject() or None
         token_claims = jwt.get_raw_jwt() or None
@@ -68,6 +91,8 @@ def gql_jwt_optional(func):
             jwt.jwt_optional()
         except InvalidHeaderError:
             raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
+        except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         kwargs['jwt'] = jwt
 

@@ -12,6 +12,7 @@ import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '../../../apollo/mutations/auth';
+import { setAccessToken, setRefreshToken } from '../../../utils/userUtils';
 
 interface LoginFormValues {
 	email: string;
@@ -23,19 +24,12 @@ const LoginPage = () => {
 
 	const { route, push, locale, defaultLocale } = useRouter();
 
-	const [canceled, setCanceled] = useState(false);
 	const [apiErrors, setApiErrors] = useState<LoginFormValues>({
 		email: '',
 		password: '',
 	});
 
-	const [login] = useMutation(LOGIN_MUTATION);
-
-	useEffect(() => {
-		return () => {
-			setCanceled(true);
-		};
-	}, []);
+	const [login, { client: apolloClient }] = useMutation(LOGIN_MUTATION);
 
 	useEffect(() => {
 		if (
@@ -51,7 +45,7 @@ const LoginPage = () => {
 				});
 			}
 		}
-	}, [route, locale, defaultLocale, canceled]);
+	}, [route, locale, defaultLocale]);
 
 	const submitForm = async (
 		values: LoginFormValues,
@@ -71,11 +65,11 @@ const LoginPage = () => {
 
 			const tokens = userData?.tokens;
 
-			if (tokens != null && tokens?.accessToken != null && typeof window !== 'undefined') {
-				await localStorage.setItem(config.api.authTokenLocation, tokens.accessToken);
+			if (tokens != null && tokens?.accessToken != null) {
+				setAccessToken(tokens.accessToken);
 
 				if (tokens?.refreshToken != null) {
-					await localStorage.setItem(config.api.refreshTokenLocation, tokens.refreshToken);
+					setRefreshToken(tokens.refreshToken);
 				}
 			}
 
@@ -88,11 +82,10 @@ const LoginPage = () => {
 
 				switch (currentError.extensions.code) {
 					case 100: {
-						!canceled &&
-							setApiErrors({
-								email: t('incorrectEmailPassword'),
-								password: t('incorrectEmailPassword'),
-							});
+						setApiErrors({
+							email: t('incorrectEmailPassword'),
+							password: t('incorrectEmailPassword'),
+						});
 						break;
 					}
 				}
@@ -103,6 +96,7 @@ const LoginPage = () => {
 
 		if (success) {
 			try {
+				await apolloClient.resetStore();
 				await push('/', '/', { locale: locale ?? defaultLocale });
 			} catch (e) {
 				config.general.isDev && console.log(e);
@@ -123,7 +117,7 @@ const LoginPage = () => {
 			showFooter={false}
 			backgroundColor={'#e6e6e6'}>
 			<div className="h-full flex flex-row items-center">
-				<div className="max-w-full min-w-full md:rounded md:min-w-450 md:max-w-450 mx-auto bg-white shadow-md p-4">
+				<div className="max-w-full min-w-full rounded md:min-w-450 md:max-w-450 mx-auto bg-white shadow-md p-4">
 					<p className="text-xl">
 						{t('title')}{' '}
 						<span className="font-semibold text-primary">{config.general.appName}</span>

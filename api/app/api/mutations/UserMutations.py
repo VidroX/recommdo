@@ -2,7 +2,7 @@ import graphene
 from email_validator import validate_email, EmailNotValidError
 from graphql import GraphQLError
 
-from app.api.decorators.AuthDecorators import gql_jwt, only_admin
+from app.api.decorators.AuthDecorators import gql_jwt, only_admin, gql_refresh_jwt_required
 from app.api.models.UserModel import UserModel
 from app.api.mutations.types.AccessLevelInput import AccessLevelInput
 from app.api.mutations.types.TokenData import TokenData
@@ -135,3 +135,22 @@ class Register(graphene.Mutation):
         token_data.refresh_token = jwt.create_refresh_token(subject=str(created_user.id), user_claims=claims)
 
         return Register(user=created_user, tokens=token_data)
+
+
+class Refresh(graphene.Mutation):
+    tokens = graphene.Field(TokenData)
+
+    @staticmethod
+    @gql_refresh_jwt_required
+    async def mutate(root, info, **kwargs):
+        jwt = kwargs['jwt']
+
+        if jwt is None:
+            raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
+
+        current_user = jwt.get_jwt_subject()
+
+        token_data = TokenData()
+        token_data.access_token = jwt.create_access_token(subject=current_user)
+
+        return Refresh(tokens=token_data)
