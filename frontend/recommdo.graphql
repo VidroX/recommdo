@@ -27,6 +27,7 @@ type ApiMutation {
 type ApiQuery {
     "The ID of the object"
     node(id: ID!): Node
+    user: UserModel
     users: [UserModel]
 }
 

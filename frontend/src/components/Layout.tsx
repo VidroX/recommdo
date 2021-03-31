@@ -4,6 +4,8 @@ import Head from 'next/head';
 import { config } from '../config';
 import { useTranslation } from 'next-i18next';
 import { GoogleFonts } from 'next-google-fonts';
+import { useRouter } from 'next/router';
+import Link from './buttons/Link';
 
 interface DefaultLayoutProps {
 	pageName?: string;
@@ -22,6 +24,7 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 	children,
 }) => {
 	const { t } = useTranslation('common');
+	const { locale, defaultLocale, route } = useRouter();
 
 	const customStyles = `
 		html,
@@ -41,7 +44,7 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 						? pageName + ' - ' + config.general.appName
 						: config.general.appName}
 				</title>
-				<style>{customStyles}</style>
+				{(fullHeight != null || backgroundColor != null) && <style>{customStyles}</style>}
 				<meta name="viewport" content="initial-scale=1.0, width=device-width" />
 			</Head>
 			{showNavbar && <NavigationBar />}
@@ -52,6 +55,11 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 				<footer className="grid grid-cols-1 mt-4">
 					<div className="md:mx-auto max-w-7xl w-full px-4">
 						&copy; {config.general.appName}, {new Date().getFullYear()}. {t('rightsReserved')}.
+					</div>
+					<div className="md:mx-auto max-w-7xl w-full px-4">
+						{config.general.appName} {t('differentLanguages')}:{' '}
+						{locale !== 'uk' && <Link locale="uk" className="underline text-primary" href={route}>українська</Link>}
+						{locale !== 'en' && <Link locale="en" className="underline text-primary" href={route}>English</Link>}
 					</div>
 				</footer>
 			)}

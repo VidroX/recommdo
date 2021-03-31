@@ -3,13 +3,11 @@ import { ApolloClient, ApolloLink, createHttpLink, InMemoryCache } from '@apollo
 import { config } from '../config';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
-import { REFRESH_TOKEN_MUTATION } from '../apollo/mutations/auth';
 import {
 	checkTokenValidity,
 	checkUserTokens,
 	getNewAccessToken,
 	getUserToken,
-	setAccessToken,
 	TOKEN_TYPES,
 } from '../utils/userUtils';
 

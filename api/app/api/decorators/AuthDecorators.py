@@ -39,6 +39,33 @@ def gql_jwt_required(func):
     return gql_jwt_required_decorator
 
 
+def gql_full_jwt_required(func):
+    def gql_full_jwt_required_decorator(*args, **kwargs):
+        jwt = get_jwt_instance(*args, **kwargs)
+
+        try:
+            jwt.jwt_required()
+        except MissingTokenError:
+            raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
+        except InvalidHeaderError:
+            raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
+        except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+
+        user_subject = jwt.get_jwt_subject() or None
+        token_claims = jwt.get_raw_jwt() or None
+
+        if user_subject is None or token_claims is None:
+            raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
+
+        kwargs['jwt'] = jwt
+        kwargs['jwt_subject'] = user_subject
+        kwargs['jwt_claims'] = token_claims
+
+        return func(*args, **kwargs)
+    return gql_full_jwt_required_decorator
+
+
 def gql_refresh_jwt_required(func):
     def gql_refresh_jwt_required_decorator(*args, **kwargs):
         jwt = get_jwt_instance(*args, **kwargs)

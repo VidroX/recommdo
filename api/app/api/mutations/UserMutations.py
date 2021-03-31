@@ -40,6 +40,7 @@ class Login(graphene.Mutation):
         jwt = kwargs['jwt']
 
         claims = {
+            "user_id": str(user.id),
             "email": user.email,
             "access_level": {
                 "level": user.access_level.level,
@@ -123,6 +124,7 @@ class Register(graphene.Mutation):
             raise GraphQLError(STATUS_CODE[104], extensions={'code': 104})
 
         claims = {
+            "user_id": str(created_user.id),
             "email": created_user.email,
             "access_level": {
                 "level": created_user.access_level.level,
@@ -148,9 +150,23 @@ class Refresh(graphene.Mutation):
         if jwt is None:
             raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
 
-        current_user = jwt.get_jwt_subject()
+        current_user = jwt.get_jwt_subject() or None
+
+        if current_user is None:
+            raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
+
+        token_claims = jwt.get_raw_jwt() or None
+
+        claims = {
+            "user_id": str(token_claims["user_id"]),
+            "email": token_claims["email"],
+            "access_level": {
+                "level": token_claims["access_level"]["level"],
+                "is_staff": token_claims["access_level"]["is_staff"]
+            }
+        }
 
         token_data = TokenData()
-        token_data.access_token = jwt.create_access_token(subject=current_user)
+        token_data.access_token = jwt.create_access_token(subject=current_user, user_claims=claims)
 
         return Refresh(tokens=token_data)
