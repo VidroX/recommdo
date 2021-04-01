@@ -11,6 +11,8 @@ interface ButtonProps {
 	outlined?: boolean;
 	submitButton?: boolean;
 	disabled?: boolean;
+	title?: string;
+	locale?: string;
 }
 
 const defaultClasses = [
@@ -46,6 +48,7 @@ const outlinedClasses = [
 
 const Button: React.FC<ButtonProps> = ({
 	href = null,
+	locale = undefined,
 	loading = false,
 	onClick = (e) => {},
 	children,
@@ -53,6 +56,7 @@ const Button: React.FC<ButtonProps> = ({
 	outlined = false,
 	submitButton = false,
 	disabled = false,
+	title = undefined,
 }) => {
 	const classes = outlined ? outlinedClasses : defaultClasses;
 
@@ -72,6 +76,7 @@ const Button: React.FC<ButtonProps> = ({
 		if (disabled) {
 			return (
 				<div
+					title={title}
 					className={classes
 						.join(' ')
 						.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))}>
@@ -82,6 +87,8 @@ const Button: React.FC<ButtonProps> = ({
 
 		return (
 			<Link
+				locale={locale}
+				title={title}
 				href={href}
 				className={classes
 					.join(' ')
@@ -93,6 +100,7 @@ const Button: React.FC<ButtonProps> = ({
 
 	return (
 		<button
+			title={title}
 			disabled={disabled}
 			type={submitButton ? 'submit' : 'button'}
 			className={classes.join(' ').concat(extraClasses?.length > 0 ? ' ' + extraClasses : '')}

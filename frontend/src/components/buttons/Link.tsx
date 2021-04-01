@@ -7,6 +7,7 @@ interface CustomLinkProps {
 	href?: string;
 	className?: string;
 	locale?: string;
+	title?: string;
 }
 
 const Link: React.FC<CustomLinkProps> = ({
@@ -14,6 +15,7 @@ const Link: React.FC<CustomLinkProps> = ({
 	href = '#',
 	className = '',
 	children,
+	title = undefined,
 }) => {
 	const { locale: routerLocale, defaultLocale } = useRouter();
 
@@ -23,7 +25,7 @@ const Link: React.FC<CustomLinkProps> = ({
 
 	return (
 		<NavLink href={href} locale={linkLocale}>
-			<a className={className}>{children}</a>
+			<a title={title} className={className}>{children}</a>
 		</NavLink>
 	);
 };

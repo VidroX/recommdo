@@ -1,5 +1,10 @@
 {
   "test": "test",
   "rightsReserved": "All rights reserved",
-  "differentLanguages": "also available in different languages"
+  "differentLanguages": "also available in different languages",
+  "settingsTitle": "Settings",
+  "requiredField": "This field is required",
+  "projectsTitle": "Projects",
+  "logout": "Sign out",
+  "create": "Create"
 }

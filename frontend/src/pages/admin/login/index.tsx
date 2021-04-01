@@ -21,6 +21,7 @@ interface LoginFormValues {
 
 const LoginPage = () => {
 	const { t } = useTranslation('auth');
+	const { t: commonTranslate } = useTranslation('common');
 
 	const { route, push, locale, defaultLocale } = useRouter();
 
@@ -105,8 +106,8 @@ const LoginPage = () => {
 	};
 
 	const LoginSchema = Yup.object().shape({
-		email: Yup.string().email(t('invalidEmail')).required(t('requiredField')),
-		password: Yup.string().min(6, t('smallPassword')).required(t('requiredField')),
+		email: Yup.string().email(t('invalidEmail')).required(commonTranslate('requiredField')),
+		password: Yup.string().min(6, t('smallPassword')).required(commonTranslate('requiredField')),
 	});
 
 	return (

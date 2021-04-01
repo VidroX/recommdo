@@ -5,10 +5,11 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { IoLogOutOutline } from 'react-icons/io5';
-import { RiMenu4Fill, RiCloseFill } from 'react-icons/ri';
+import { RiMenu4Fill, RiCloseFill, RiSettings4Fill } from 'react-icons/ri';
+import { GrProjects } from 'react-icons/gr';
 
 const NavigationBar = () => {
-	const { t } = useTranslation('auth');
+	const { t } = useTranslation('common');
 
 	const { route, locale, defaultLocale } = useRouter();
 
@@ -64,15 +65,30 @@ const NavigationBar = () => {
 							: 'hidden md:flex md:flex-row md:flex-1 duration-300'
 					}>
 					<ul className="flex flex-col md:flex-row md:flex-1">
-						<li className="flex mt-2 md:mt-0 md:mr-2"></li>
+						<li className="flex mt-2 md:mt-0 md:mr-2">
+							<Link
+								href="/"
+								className={(route === '/' ? selectedLinkStyles : linkStyles) + ' ' + shownNavStyles}
+								locale={currentLocale}>
+								<GrProjects size={20} className="mr-2" /> {t('projectsTitle')}
+							</Link>
+						</li>
 					</ul>
 					<ul className="flex flex-col md:flex-row">
 						<li className="flex mt-1 md:mt-0 md:mr-2">
 							<Link
+								href="/admin/settings/"
+								className={(route === '/admin/settings' ? selectedLinkStyles : linkStyles) + ' ' + shownNavStyles}
+								locale={currentLocale}>
+								<RiSettings4Fill size={20} className="mr-1" /><span className="md:hidden">{' '}{t('settingsTitle')}</span>
+							</Link>
+						</li>
+						<li className="flex mt-1 md:mt-0">
+							<Link
 								href="/admin/logout/"
 								className={linkStyles + ' ' + shownNavStyles}
 								locale={currentLocale}>
-								<IoLogOutOutline size={20} className="mr-1" /> {t('logout')}
+								<IoLogOutOutline size={20} className="mr-1" /> <span>{t('logout')}</span>
 							</Link>
 						</li>
 					</ul>

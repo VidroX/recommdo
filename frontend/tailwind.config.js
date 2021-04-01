@@ -30,6 +30,7 @@ module.exports = {
 		extend: {
 			opacity: ['disabled'],
 			cursor: ['disabled'],
+			borderStyle: ['hover', 'focus'],
 			borderRadius: ['hover'],
 			borderWidth: ['hover'],
 			borderColor: ['hover'],
