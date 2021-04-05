@@ -5,16 +5,11 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import Layout from '../../../components/Layout';
 import { useTranslation } from 'next-i18next';
 
-
 const SettingsPage = () => {
 	const { t } = useTranslation('settings');
 	const { t: commonTranslate } = useTranslation('common');
 
-	return (
-		<Layout pageName={commonTranslate('settingsTitle')}>
-			123
-		</Layout>
-	);
+	return <Layout pageName={commonTranslate('settingsTitle')}>123</Layout>;
 };
 
 export const getStaticProps: GetStaticProps = async ({ locale }) => ({

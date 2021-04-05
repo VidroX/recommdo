@@ -18,7 +18,7 @@ export interface User {
 }
 
 interface UserQuery {
-	user: User
+	user: User;
 }
 
 const useUser = (): User | null => {

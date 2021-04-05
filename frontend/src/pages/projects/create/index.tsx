@@ -6,13 +6,33 @@ import { useTranslation } from 'next-i18next';
 import Layout from '../../../components/Layout';
 import Input from '../../../components/inputs/Input';
 import Button from '../../../components/buttons/Button';
+import FileButton from '../../../components/buttons/FileButton';
 import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import SelectBox from '../../../components/inputs/SelectBox';
+import IconButtonWrapper from '../../../components/buttons/IconButtonWrapper';
+import { VscClose } from 'react-icons/vsc';
 
 interface CreateProjectFormValues {
 	projectName: string;
+}
+
+interface CSVHeaderFile {
+	file: File;
+	headers: string[];
+}
+
+interface Option {
+	value: string;
+	label: string;
+}
+
+interface OptionValues {
+	id: string;
+	name: string;
+	options: Option[];
 }
 
 const dropzoneStyles = [
@@ -29,8 +49,17 @@ const dropzoneStyles = [
 	'focus:ring',
 	'focus:ring-opacity-50',
 	'focus:ring-primary',
-	'duration-75'
+	'duration-75',
 ].join(' ');
+
+const csvMimeTypes = [
+	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	'application/vnd.ms-excel',
+	'application/csv',
+	'text/comma-separated-values',
+	'text/csv',
+	'.csv',
+];
 
 const CreateProject = () => {
 	const { t: commonTranslate } = useTranslation('common');
@@ -39,17 +68,67 @@ const CreateProject = () => {
 	const [createErrors, setCreateErrors] = useState<CreateProjectFormValues>({
 		projectName: '',
 	});
+	const [files, setFiles] = useState<File[]>([]);
+	const [fileHeaders, setFileHeaders] = useState<CSVHeaderFile[]>([]);
 
-	const onDrop = useCallback((acceptedFiles) => {
-		console.log(acceptedFiles);
-	}, [])
-	const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
+	const fileTypes = [
+		{
+			label: t('userPurchases'),
+			value: 'user-purchases-data',
+		},
+		{
+			label: t('editionsInformation'),
+			value: 'editions-information',
+		},
+	];
+
+	const onDrop = useCallback(
+		(acceptedFiles) => {
+			const filesToUpload: File[] = [];
+
+			for (const file of acceptedFiles) {
+				const fileExists = files.findIndex((obj) => obj.name === file.name) > -1;
+				if (!fileExists && csvMimeTypes.includes(file.type)) {
+					filesToUpload.push(file);
+				}
+			}
+
+			setFiles((files) => [...files, ...filesToUpload]);
+		},
+		[files]
+	);
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+	useEffect(() => {
+		setFileHeaders([]);
+
+		if (files != null && files?.length > 0) {
+			for (const file of files) {
+				const reader = new FileReader();
+
+				reader.onload = (event) => {
+					if (event.target != null) {
+						const data = event.target.result;
+						if (typeof data === 'string') {
+							const headers = data?.split('\n')[0]?.replace(/"/g, '')?.split(',');
+
+							if (headers?.length > 0) {
+								setFileHeaders((fileHeaders) => [...fileHeaders, { file, headers }]);
+							}
+						}
+					}
+				};
+
+				reader.readAsText(file);
+			}
+		}
+	}, [files]);
 
 	const submitForm = async (
 		values: CreateProjectFormValues,
 		{ setSubmitting }: FormikHelpers<CreateProjectFormValues>
 	) => {
-		let success = false;
+		const success = false;
 
 		try {
 			/*const {
@@ -81,7 +160,7 @@ const CreateProject = () => {
 
 		if (success) {
 			try {
-
+				//
 			} catch (e) {
 				config.general.isDev && console.log(e);
 			}
@@ -92,6 +171,37 @@ const CreateProject = () => {
 		projectName: Yup.string().required(commonTranslate('requiredField')),
 	});
 
+	const onRemove = (name: string) => {
+		setFiles((filesList) => filesList.filter((obj) => obj.name !== name));
+	};
+
+	const optionsArray = useMemo(() => {
+		const options: OptionValues[] = [];
+
+		for (const fileHeader of fileHeaders) {
+			const optionsToInsert: Option[] = [];
+
+			if (fileHeader.file.name != null && fileHeader.headers?.length > 0) {
+				for (const header of fileHeader.headers) {
+					optionsToInsert.push({
+						label: header,
+						value: header,
+					});
+				}
+			}
+
+			if (optionsToInsert?.length > 0) {
+				options.push({
+					id: fileHeader.file.name.split('.')[0],
+					name: fileHeader.file.name,
+					options: optionsToInsert,
+				});
+			}
+		}
+
+		return options;
+	}, [fileHeaders]);
+
 	return (
 		<Layout pageName={t('newProject')}>
 			<div className="flex flex-1 justify-between items-center">
@@ -101,30 +211,35 @@ const CreateProject = () => {
 				initialValues={{ projectName: '' }}
 				validationSchema={CreateProjectSchema}
 				onSubmit={submitForm}>
-				{({
-						values,
-						errors,
-						touched,
-						handleChange,
-						handleBlur,
-						handleSubmit,
-						isSubmitting,
-					}) => (
+				{({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting }) => (
 					<form onSubmit={handleSubmit} className="mt-5">
-						<div {...getRootProps()} className={dropzoneStyles}>
-							<input {...getInputProps()} />
-							{
-								isDragActive ?
-									<p>{t('dragHere')}</p> :
-									<p>{t('dragAndDropDataset')}</p>
-							}
+						<div
+							{...getRootProps()}
+							className={dropzoneStyles.concat(files?.length > 0 ? '' : ' cursor-pointer')}>
+							<input {...getInputProps()} accept=".csv" disabled={files?.length > 0 ?? false} />
+							{files?.length > 0 ? (
+								files.map((file) => (
+									<FileButton key={file.name} name={file.name} onRemove={onRemove} />
+								))
+							) : isDragActive ? (
+								<p className="select-none">{t('dragHere')}</p>
+							) : (
+								<p className="select-none">{t('dragAndDropDataset')}</p>
+							)}
 						</div>
+						{files?.length > 0 && (
+							<button
+								className="text-red-300 hover:text-red-500 mt-0.5 mb-3"
+								onClick={() => setFiles([])}>
+								{t('deleteAll')}
+							</button>
+						)}
 						<Input
 							type="text"
 							id="projectName"
 							name="projectName"
 							label={t('projectName')}
-							className="mb-2"
+							className="mb-4"
 							placeholder="Example name"
 							onChange={handleChange}
 							onBlur={handleBlur}
@@ -137,7 +252,46 @@ const CreateProject = () => {
 									: null
 							}
 						/>
-						<div className="flex flex-row justify-end items-center mt-6">
+						<div className="mb-4">
+							{optionsArray?.length > 0 && (
+								<h1 className="mb-2">{t('selectKeyFeatures')}:</h1>
+							)}
+							{optionsArray.map((option, index) => (
+								<div
+									key={'header-' + option.name}
+									className={
+										'max-w-full min-w-full rounded bg-white shadow-md p-4' +
+										(index !== optionsArray.length - 1 ? ' mb-4' : '')
+									}>
+									<div className="flex flex-1 flex-row justify-between items-center">
+										<p className="mb-2 font-semibold">{option.name}</p>
+										<IconButtonWrapper
+											size={24}
+											color="red-300"
+											onClick={() => onRemove(option.name)}>
+											<VscClose size={18} />
+										</IconButtonWrapper>
+									</div>
+									<SelectBox
+										id={option.id + '-file-types'}
+										name={option.id + '-file-types'}
+										label={t('fileType')}
+										className={'mb-4'}
+										options={fileTypes}
+										error="test"
+									/>
+									<SelectBox
+										isMulti
+										id={option.id + '-key-features'}
+										name={option.id + '-key-features'}
+										label={t('keyFeatures')}
+										className={'mb-4'}
+										options={option.options}
+									/>
+								</div>
+							))}
+						</div>
+						<div className="flex flex-row justify-end items-center">
 							<Button submitButton loading={isSubmitting} disabled={isSubmitting}>
 								{commonTranslate('create')}
 							</Button>

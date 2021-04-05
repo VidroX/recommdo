@@ -26,6 +26,7 @@ const defaultClasses = [
 	'duration-75',
 	'disabled:select-none',
 	'disabled:cursor-default',
+	'hover:bg-primary-dark',
 ];
 
 const outlinedClasses = [

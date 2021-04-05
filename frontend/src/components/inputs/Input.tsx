@@ -53,7 +53,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 		return (
 			<div className={className}>
 				{label != null && (
-					<label htmlFor={id} className="block">
+					<label htmlFor={id} className="block mb-1">
 						{label}:
 					</label>
 				)}

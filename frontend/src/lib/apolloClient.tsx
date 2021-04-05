@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ApolloClient, ApolloLink, createHttpLink, InMemoryCache } from '@apollo/client';
+import { ApolloClient, ApolloLink, InMemoryCache } from '@apollo/client';
 import { config } from '../config';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
@@ -10,10 +10,11 @@ import {
 	getUserToken,
 	TOKEN_TYPES,
 } from '../utils/userUtils';
+import { createUploadLink } from 'apollo-upload-client';
 
 let apolloClient: ApolloClient<any>;
 
-const httpLink = createHttpLink({
+const uploadLink = createUploadLink({
 	uri: config.api.url,
 });
 
@@ -81,7 +82,9 @@ const errorLink = onError(({ operation, graphQLErrors, forward }) => {
 const createApolloClient = (): ApolloClient<any> => {
 	return new ApolloClient({
 		ssrMode: typeof window === 'undefined',
-		link: ApolloLink.from([errorLink, authLink, httpLink]),
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-ignore
+		link: ApolloLink.from([errorLink, authLink, uploadLink]),
 		cache: new InMemoryCache(),
 	});
 };

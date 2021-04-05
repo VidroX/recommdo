@@ -4,5 +4,11 @@
   "nameExists": "This project name already exists",
   "projectName": "Project Name",
   "dragAndDropDataset": "Drag & Drop dataset files here, or click to select them",
-  "dragHere": "Drop the files here..."
+  "dragHere": "Drop the files here...",
+  "deleteAll": "Delete All",
+  "selectKeyFeatures": "Select type and key features for each file",
+  "keyFeatures": "Key features",
+  "fileType": "File type",
+  "userPurchases": "User Purchases Data",
+  "editionsInformation": "Editions Information"
 }

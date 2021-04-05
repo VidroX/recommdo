@@ -4,6 +4,9 @@
 
 :root {
   --color-primary: #02C2A8;
+  --color-primary-75: rgba(2, 194, 168, 75);
+  --color-primary-50: rgba(2, 194, 168, 50);
+  --color-primary-25: rgba(2, 194, 168, 25);
 }
 
 html,

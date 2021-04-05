@@ -16,7 +16,8 @@ const Home = () => {
 			<div className="flex flex-1 justify-between items-center">
 				<h1 className="text-primary font-bold">{commonTranslate('projectsTitle')}</h1>
 				<Button title={t('addNewProject')} href="/projects/create">
-					<BsPlusSquare size={20} className="md:mr-2" /> <span className="hidden md:flex">{t('addNewProject')}</span>
+					<BsPlusSquare size={20} className="md:mr-2" />{' '}
+					<span className="hidden md:flex">{t('addNewProject')}</span>
 				</Button>
 			</div>
 		</Layout>

@@ -58,8 +58,16 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 					</div>
 					<div className="md:mx-auto max-w-7xl w-full px-4">
 						{config.general.appName} {t('differentLanguages')}:{' '}
-						{locale !== 'uk' && <Link locale="uk" className="underline text-primary" href={route}>українська</Link>}
-						{locale !== 'en' && <Link locale="en" className="underline text-primary" href={route}>English</Link>}
+						{locale !== 'uk' && (
+							<Link locale="uk" className="underline text-primary" href={route}>
+								українська
+							</Link>
+						)}
+						{locale !== 'en' && (
+							<Link locale="en" className="underline text-primary" href={route}>
+								English
+							</Link>
+						)}
 					</div>
 				</footer>
 			)}
