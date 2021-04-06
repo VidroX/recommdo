@@ -1,12 +1,12 @@
 from fastapi import FastAPI, Depends
 from fastapi_jwt_auth import AuthJWT
 from starlette.datastructures import URL
-from starlette.graphql import GraphQLApp
 from graphql.execution.executors.asyncio import AsyncioExecutor
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 
 from app import settings
+from app.CustomGraphqlApp import CustomGraphqlApp
 from app.api.schema import schema
 from app.utils import preflight_setup, connection_end
 from app.settings import JWTSettings
@@ -33,7 +33,7 @@ def get_config():
 app.add_event_handler("startup", preflight_setup)
 app.add_event_handler("shutdown", connection_end)
 
-graphql_app = GraphQLApp(schema=schema, executor_class=AsyncioExecutor)
+graphql_app = CustomGraphqlApp(schema=schema, executor_class=AsyncioExecutor)
 
 
 @app.get('/')

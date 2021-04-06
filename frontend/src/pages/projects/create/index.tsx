@@ -10,10 +10,13 @@ import FileButton from '../../../components/buttons/FileButton';
 import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { FileRejection, useDropzone } from 'react-dropzone';
 import SelectBox from '../../../components/inputs/SelectBox';
 import IconButtonWrapper from '../../../components/buttons/IconButtonWrapper';
 import { VscClose } from 'react-icons/vsc';
+import { useMutation } from '@apollo/client';
+import { CREATE_PROJECT_MUTATION } from '../../../apollo/mutations/recommendations';
+import { ReactNativeFile } from 'extract-files';
 
 interface CreateProjectFormValues {
 	projectName: string;
@@ -36,7 +39,6 @@ interface OptionValues {
 }
 
 const dropzoneStyles = [
-	'mb-2',
 	'px-2',
 	'py-6',
 	'border-2',
@@ -70,6 +72,9 @@ const CreateProject = () => {
 	});
 	const [files, setFiles] = useState<File[]>([]);
 	const [fileHeaders, setFileHeaders] = useState<CSVHeaderFile[]>([]);
+	const [dropzoneError, setDropzoneError] = useState<string | null>(null);
+
+	const [createProject, { client: apolloClient }] = useMutation(CREATE_PROJECT_MUTATION);
 
 	const fileTypes = [
 		{
@@ -83,7 +88,7 @@ const CreateProject = () => {
 	];
 
 	const onDrop = useCallback(
-		(acceptedFiles) => {
+		(acceptedFiles, fileRejections: FileRejection[]) => {
 			const filesToUpload: File[] = [];
 
 			for (const file of acceptedFiles) {
@@ -93,11 +98,19 @@ const CreateProject = () => {
 				}
 			}
 
+			if (filesToUpload?.length > 0) {
+				setDropzoneError(null);
+			}
+
 			setFiles((files) => [...files, ...filesToUpload]);
 		},
 		[files]
 	);
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+	const { getRootProps, getInputProps, isDragActive } = useDropzone({
+		onDrop,
+		accept: csvMimeTypes.join(', '),
+	});
 
 	useEffect(() => {
 		setFileHeaders([]);
@@ -128,17 +141,25 @@ const CreateProject = () => {
 		values: CreateProjectFormValues,
 		{ setSubmitting }: FormikHelpers<CreateProjectFormValues>
 	) => {
+		setDropzoneError(null);
 		const success = false;
 
+		if (files?.length <= 0) {
+			setSubmitting(false);
+			setDropzoneError(t('datasetFilesRequired'));
+			return;
+		}
+
 		try {
-			/*const {
-				data: { login: userData },
-			} = await login({
-				variables: {
-					email: values.email,
-					password: values.password,
+			const {
+				data: {
+					createProject: { message },
 				},
-			});*/
+			} = await createProject({
+				variables: {
+					files,
+				},
+			});
 		} catch (e) {
 			const errors = e?.networkError?.result?.errors;
 
@@ -215,8 +236,15 @@ const CreateProject = () => {
 					<form onSubmit={handleSubmit} className="mt-5">
 						<div
 							{...getRootProps()}
-							className={dropzoneStyles.concat(files?.length > 0 ? '' : ' cursor-pointer')}>
-							<input {...getInputProps()} accept=".csv" disabled={files?.length > 0 ?? false} />
+							className={dropzoneStyles
+								.concat(files?.length > 0 ? '' : ' cursor-pointer')
+								.concat(dropzoneError != null && dropzoneError?.length > 0 ? '' : ' mb-3')}>
+							<input
+								{...getInputProps()}
+								multiple
+								accept={csvMimeTypes.join(', ')}
+								disabled={files?.length > 0 ?? false}
+							/>
 							{files?.length > 0 ? (
 								files.map((file) => (
 									<FileButton key={file.name} name={file.name} onRemove={onRemove} />
@@ -227,6 +255,9 @@ const CreateProject = () => {
 								<p className="select-none">{t('dragAndDropDataset')}</p>
 							)}
 						</div>
+						{dropzoneError != null && dropzoneError?.length > 0 && (
+							<p className="text-red-500 mt-0.5 mb-3">{dropzoneError}</p>
+						)}
 						{files?.length > 0 && (
 							<button
 								className="text-red-300 hover:text-red-500 mt-0.5 mb-3"
@@ -253,9 +284,7 @@ const CreateProject = () => {
 							}
 						/>
 						<div className="mb-4">
-							{optionsArray?.length > 0 && (
-								<h1 className="mb-2">{t('selectKeyFeatures')}:</h1>
-							)}
+							{optionsArray?.length > 0 && <h1 className="mb-2">{t('selectKeyFeatures')}:</h1>}
 							{optionsArray.map((option, index) => (
 								<div
 									key={'header-' + option.name}
@@ -278,7 +307,6 @@ const CreateProject = () => {
 										label={t('fileType')}
 										className={'mb-4'}
 										options={fileTypes}
-										error="test"
 									/>
 									<SelectBox
 										isMulti

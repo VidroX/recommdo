@@ -5,6 +5,7 @@ from odmantic import ObjectId
 
 from app.api.decorators.AuthDecorators import gql_full_jwt_required
 from app.api.models.UserModel import UserModel
+from app.api.mutations.RecommendationMutations import CreateProject
 from app.api.mutations.UserMutations import Login, Register, Refresh
 from app.database.database import db
 from app.database.models.User import User
@@ -35,6 +36,7 @@ class ApiMutation(graphene.ObjectType):
     login = Login.Field()
     register = Register.Field()
     refresh = Refresh.Field()
+    create_project = CreateProject.Field()
 
 
 schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[UserModel])

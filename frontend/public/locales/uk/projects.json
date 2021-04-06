@@ -10,5 +10,6 @@
   "keyFeatures": "Ключові поля",
   "fileType": "Тип файлу",
   "userPurchases": "Покупки користувачів",
-  "editionsInformation": "Інформація о товарах"
+  "editionsInformation": "Інформація о товарах",
+  "datasetFilesRequired": "Файли вибірки є обов'язковими"
 }

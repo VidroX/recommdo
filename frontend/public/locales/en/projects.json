@@ -10,5 +10,6 @@
   "keyFeatures": "Key features",
   "fileType": "File type",
   "userPurchases": "User Purchases Data",
-  "editionsInformation": "Editions Information"
+  "editionsInformation": "Editions Information",
+  "datasetFilesRequired": "Dataset file(-s) required"
 }

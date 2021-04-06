@@ -19,6 +19,7 @@ type AccessLevelModel {
 }
 
 type ApiMutation {
+    createProject(files: [Upload]!): CreateProject
     login(email: String!, password: String!): Login
     refresh: Refresh
     register(accessLevel: AccessLevelInput, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
@@ -29,6 +30,10 @@ type ApiQuery {
     node(id: ID!): Node
     user: UserModel
     users: [UserModel]
+}
+
+type CreateProject {
+    message: String
 }
 
 type Login {
@@ -65,3 +70,10 @@ input AccessLevelInput {
     level: Int!
     name: String!
 }
+
+
+"""
+Create scalar that ignores normal serialization/deserialization, since
+that will be handled by the multipart request spec
+"""
+scalar Upload
