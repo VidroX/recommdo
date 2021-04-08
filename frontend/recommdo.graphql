@@ -19,7 +19,7 @@ type AccessLevelModel {
 }
 
 type ApiMutation {
-    createProject(files: [Upload]!): CreateProject
+    createProject(files: [Upload], projectMetadata: ProjectMetadataInput, projectName: String!): CreateProject
     login(email: String!, password: String!): Login
     refresh: Refresh
     register(accessLevel: AccessLevelInput, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
@@ -33,12 +33,40 @@ type ApiQuery {
 }
 
 type CreateProject {
-    message: String
+    project: ProjectModel
+}
+
+type FileLocationModel {
+    id: ID!
+    location: String!
+    name: String!
 }
 
 type Login {
     tokens: TokenData
     user: UserModel
+}
+
+type MetadataModel {
+    additionalData: String
+    id: ID!
+    metaId: Int!
+    name: String!
+    project: ProjectModel!
+}
+
+type ProjectModel {
+    files: [FileLocationModel]
+    id: ID!
+    name: String!
+}
+
+type PurchaseModel {
+    id: ID!
+    metadata: MetadataModel
+    project: ProjectModel!
+    purchaseId: String!
+    userId: Int!
 }
 
 type Refresh {
@@ -69,6 +97,13 @@ input AccessLevelInput {
     isStaff: Boolean!
     level: Int!
     name: String!
+}
+
+input ProjectMetadataInput {
+    metaIdHeader: String
+    metaNameHeader: String
+    purchaseIdHeader: String
+    purchaseUserIdHeader: String
 }
 
 

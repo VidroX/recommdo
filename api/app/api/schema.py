@@ -4,6 +4,10 @@ from graphene.relay import Node
 from odmantic import ObjectId
 
 from app.api.decorators.AuthDecorators import gql_full_jwt_required
+from app.api.models.FileLocationModel import FileLocationModel
+from app.api.models.MetadataModel import MetadataModel
+from app.api.models.ProjectModel import ProjectModel
+from app.api.models.PurchaseModel import PurchaseModel
 from app.api.models.UserModel import UserModel
 from app.api.mutations.RecommendationMutations import CreateProject
 from app.api.mutations.UserMutations import Login, Register, Refresh
@@ -39,4 +43,10 @@ class ApiMutation(graphene.ObjectType):
     create_project = CreateProject.Field()
 
 
-schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[UserModel])
+schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[
+    UserModel,
+    FileLocationModel,
+    MetadataModel,
+    PurchaseModel,
+    ProjectModel,
+])

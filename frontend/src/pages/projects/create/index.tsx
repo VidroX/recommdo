@@ -16,7 +16,6 @@ import IconButtonWrapper from '../../../components/buttons/IconButtonWrapper';
 import { VscClose } from 'react-icons/vsc';
 import { useMutation } from '@apollo/client';
 import { CREATE_PROJECT_MUTATION } from '../../../apollo/mutations/recommendations';
-import { ReactNativeFile } from 'extract-files';
 
 interface CreateProjectFormValues {
 	projectName: string;
@@ -153,10 +152,11 @@ const CreateProject = () => {
 		try {
 			const {
 				data: {
-					createProject: { message },
+					createProject: { project: { id } },
 				},
 			} = await createProject({
 				variables: {
+					projectName: values.projectName,
 					files,
 				},
 			});
