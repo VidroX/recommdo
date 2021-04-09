@@ -15,5 +15,9 @@ STATUS_CODE = {
     102: "Password should be 6 or more characters long",
     103: "Invalid E-Mail",
     104: "Unable to register with given information",
-    105: "You do not have enough permissions to do that!"
+    105: "You do not have enough permissions to do that!",
+    # Project related
+    200: "Given Project Name already exists",
+    # Upload related
+    900: "Unable to upload file(-s)"
 }

@@ -11,5 +11,9 @@
   "fileType": "File type",
   "userPurchases": "User Purchases Data",
   "editionsInformation": "Metadata",
-  "datasetFilesRequired": "Dataset file(-s) required"
+  "datasetFilesRequired": "Dataset file(-s) required",
+  "columnMetaId": "Header with Metadata ID",
+  "columnMetaName": "Header with Metadata name",
+  "columnUserId": "Header with User ID",
+  "identicalFileTypes": "Identical file types are not yet allowed"
 }

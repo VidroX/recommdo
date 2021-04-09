@@ -8,7 +8,7 @@ from app.database.models.Project import Project
 
 
 class Purchase(Model, ABC):
-    user_id: str
+    user_id: int
     purchase_id: int
     metadata: Optional[Metadata] = Reference()
     project: Project = Reference()

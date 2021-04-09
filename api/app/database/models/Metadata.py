@@ -8,8 +8,7 @@ from app.database.models.Project import Project
 
 class Metadata(Model, ABC):
     meta_id: int
-    name: str
-    additional_data: Optional[str] = ""
+    name: Optional[str]
     project: Project = Reference()
 
     class Config:

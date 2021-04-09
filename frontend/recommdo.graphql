@@ -48,10 +48,9 @@ type Login {
 }
 
 type MetadataModel {
-    additionalData: String
     id: ID!
     metaId: Int!
-    name: String!
+    name: String
     project: ProjectModel!
 }
 
@@ -65,7 +64,7 @@ type PurchaseModel {
     id: ID!
     metadata: MetadataModel
     project: ProjectModel!
-    purchaseId: String!
+    purchaseId: Int!
     userId: Int!
 }
 
@@ -100,9 +99,11 @@ input AccessLevelInput {
 }
 
 input ProjectMetadataInput {
+    metaFileName: String
     metaIdHeader: String
     metaNameHeader: String
-    purchaseIdHeader: String
+    purchaseFileName: String
+    purchaseMetaIdHeader: String
     purchaseUserIdHeader: String
 }
 

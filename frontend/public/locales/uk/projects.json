@@ -10,6 +10,10 @@
   "keyFeatures": "Ключові поля",
   "fileType": "Тип файлу",
   "userPurchases": "Покупки користувачів",
-  "editionsInformation": "Метадата",
-  "datasetFilesRequired": "Файли вибірки є обов'язковими"
+  "editionsInformation": "Метаданні",
+  "datasetFilesRequired": "Файли вибірки є обов'язковими",
+  "columnMetaId": "Заголовок з ID метаданих",
+  "columnMetaName": "Заголовок з назвою метаданих",
+  "columnUserId": "Заголовок з ID користувача",
+  "identicalFileTypes": "Ідентичні типи файлів ще не дозволені"
 }

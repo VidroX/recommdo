@@ -25,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @AuthJWT.load_config
 def get_config():
     return JWTSettings()

@@ -10,7 +10,7 @@ import FileButton from '../../../components/buttons/FileButton';
 import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileRejection, useDropzone } from 'react-dropzone';
+import { useDropzone } from 'react-dropzone';
 import SelectBox from '../../../components/inputs/SelectBox';
 import IconButtonWrapper from '../../../components/buttons/IconButtonWrapper';
 import { VscClose } from 'react-icons/vsc';
@@ -29,6 +29,53 @@ interface CSVHeaderFile {
 interface Option {
 	value: string;
 	label: string;
+}
+
+interface Metadata {
+	metaId?: string;
+	name?: string;
+}
+
+interface PurchaseData {
+	purchaseId?: string;
+	purchaseMetaId?: string;
+}
+
+interface SelectedOption {
+	id: string;
+	name: string;
+	option: Option;
+	metadata: Metadata | null;
+	error?: string;
+	innerErrors: {
+		metaIdError?: string | null;
+		purchaseIdError?: string | null;
+		purchaseMetaIdError?: string | null;
+	};
+	purchaseData: PurchaseData | null;
+}
+
+interface UpdateSelectedOption {
+	id?: string;
+	name?: string;
+	option?: Option;
+	error?: string;
+	metadata?: Metadata | null;
+	purchaseData?: PurchaseData | null;
+	innerErrors?: {
+		metaIdError?: string | null;
+		purchaseIdError?: string | null;
+		purchaseMetaIdError?: string | null;
+	};
+}
+
+interface ProjectMetadata {
+	metaFileName?: string | null;
+	metaIdHeader?: string | null;
+	metaNameHeader?: string | null;
+	purchaseFileName?: string | null;
+	purchaseMetaIdHeader?: string | null;
+	purchaseUserIdHeader?: string | null;
 }
 
 interface OptionValues {
@@ -72,22 +119,22 @@ const CreateProject = () => {
 	const [files, setFiles] = useState<File[]>([]);
 	const [fileHeaders, setFileHeaders] = useState<CSVHeaderFile[]>([]);
 	const [dropzoneError, setDropzoneError] = useState<string | null>(null);
-
-	const [createProject, { client: apolloClient }] = useMutation(CREATE_PROJECT_MUTATION);
-
-	const fileTypes = [
+	const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
+	const [fileTypes, setFileTypes] = useState<Option[]>([
 		{
 			label: t('userPurchases'),
-			value: 'user-purchases-data',
+			value: 'purchase-data',
 		},
 		{
 			label: t('editionsInformation'),
-			value: 'editions-information',
+			value: 'metadata',
 		},
-	];
+	]);
+
+	const [createProject] = useMutation(CREATE_PROJECT_MUTATION);
 
 	const onDrop = useCallback(
-		(acceptedFiles, fileRejections: FileRejection[]) => {
+		(acceptedFiles) => {
 			const filesToUpload: File[] = [];
 
 			for (const file of acceptedFiles) {
@@ -141,25 +188,96 @@ const CreateProject = () => {
 		{ setSubmitting }: FormikHelpers<CreateProjectFormValues>
 	) => {
 		setDropzoneError(null);
-		const success = false;
 
-		if (files?.length <= 0) {
-			setSubmitting(false);
-			setDropzoneError(t('datasetFilesRequired'));
-			return;
+		let success = false;
+		const projectMetadata: ProjectMetadata = {
+			metaFileName: null,
+			metaIdHeader: null,
+			metaNameHeader: null,
+			purchaseFileName: null,
+			purchaseMetaIdHeader: null,
+			purchaseUserIdHeader: null,
+		};
+
+		if (selectedOptions?.length > 0) {
+			let errorsFound = false;
+			for (const option1 of selectedOptions) {
+				option1.error = undefined;
+				if (option1.metadata != null) {
+					option1.innerErrors.metaIdError = null;
+				}
+				if (option1.purchaseData != null) {
+					option1.innerErrors.purchaseMetaIdError = null;
+					option1.innerErrors.purchaseIdError = null;
+				}
+
+				for (const option2 of selectedOptions) {
+					if (option1.id !== option2.id && option1.option.value === option2.option.value) {
+						option1.error = t('identicalFileTypes');
+						option2.error = t('identicalFileTypes');
+						errorsFound = true;
+					}
+				}
+
+				if (
+					option1.option.value === fileTypes[1].value &&
+					(option1.metadata == null || option1.metadata?.metaId == null)
+				) {
+					option1.innerErrors.metaIdError = commonTranslate('requiredField');
+					errorsFound = true;
+				}
+
+				if (
+					option1.option.value === fileTypes[0].value &&
+					(option1.purchaseData == null || option1.purchaseData?.purchaseId == null)
+				) {
+					option1.innerErrors.purchaseIdError = commonTranslate('requiredField');
+					errorsFound = true;
+				}
+
+				if (
+					option1.option.value === fileTypes[0].value &&
+					(option1.purchaseData == null || option1.purchaseData?.purchaseMetaId == null)
+				) {
+					option1.innerErrors.purchaseMetaIdError = commonTranslate('requiredField');
+					errorsFound = true;
+				}
+
+				if (option1.option.value === fileTypes[1].value && option1.metadata != null) {
+					projectMetadata.metaFileName = option1.name;
+					projectMetadata.metaIdHeader = option1.metadata.metaId;
+					projectMetadata.metaNameHeader = option1.metadata.name;
+				}
+
+				if (option1.option.value === fileTypes[0].value && option1.purchaseData != null) {
+					projectMetadata.purchaseFileName = option1.name;
+					projectMetadata.purchaseMetaIdHeader = option1.purchaseData.purchaseMetaId;
+					projectMetadata.purchaseUserIdHeader = option1.purchaseData.purchaseId;
+				}
+			}
+
+			if (errorsFound) {
+				setSubmitting(false);
+				return;
+			}
 		}
 
 		try {
 			const {
 				data: {
-					createProject: { project: { id } },
+					createProject: {
+						project: { id },
+					},
 				},
 			} = await createProject({
 				variables: {
 					projectName: values.projectName,
+					projectMetadataInput: projectMetadata,
 					files,
 				},
 			});
+
+			success = true;
 		} catch (e) {
 			const errors = e?.networkError?.result?.errors;
 
@@ -194,6 +312,7 @@ const CreateProject = () => {
 
 	const onRemove = (name: string) => {
 		setFiles((filesList) => filesList.filter((obj) => obj.name !== name));
+		setSelectedOptions((selOptions) => selOptions.filter((obj) => obj.name !== name));
 	};
 
 	const optionsArray = useMemo(() => {
@@ -222,6 +341,47 @@ const CreateProject = () => {
 
 		return options;
 	}, [fileHeaders]);
+
+	const getSelectedOption = useCallback(
+		(id: string): SelectedOption | undefined => selectedOptions.find((obj) => obj.id === id),
+		[selectedOptions]
+	);
+
+	const updateSelectValue = useCallback(
+		(id: string, newValues: SelectedOption | UpdateSelectedOption) => {
+			setSelectedOptions((selOptions) => {
+				return selOptions.map((obj) => {
+					if (obj.id === id) {
+						if (newValues.id != null) {
+							obj.id = newValues.id;
+						}
+						if (newValues.name != null) {
+							obj.name = newValues.name;
+						}
+						if (newValues.option != null) {
+							obj.option = newValues.option;
+						}
+						if (newValues.metadata != null || newValues.metadata === null) {
+							obj.metadata = newValues.metadata;
+						}
+						if (newValues.purchaseData != null || newValues.purchaseData === null) {
+							obj.purchaseData = newValues.purchaseData;
+						}
+						if (newValues.innerErrors != null) {
+							obj.innerErrors = newValues.innerErrors;
+						}
+					}
+
+					return obj;
+				});
+			});
+		},
+		[selectedOptions]
+	);
+
+	useEffect(() => {
+		console.log(selectedOptions);
+	}, [selectedOptions]);
 
 	return (
 		<Layout pageName={t('newProject')}>
@@ -261,7 +421,10 @@ const CreateProject = () => {
 						{files?.length > 0 && (
 							<button
 								className="text-red-300 hover:text-red-500 mt-0.5 mb-3"
-								onClick={() => setFiles([])}>
+								onClick={() => {
+									setFiles([]);
+									setSelectedOptions([]);
+								}}>
 								{t('deleteAll')}
 							</button>
 						)}
@@ -307,15 +470,152 @@ const CreateProject = () => {
 										label={t('fileType')}
 										className={'mb-4'}
 										options={fileTypes}
+										value={getSelectedOption(option.id)?.option ?? undefined}
+										error={getSelectedOption(option.id)?.error ?? undefined}
+										onChange={(value: Option) => {
+											const existingObj = selectedOptions.find((obj) => obj.id === option.id);
+
+											if (existingObj) {
+												updateSelectValue(option.id, {
+													id: option.id,
+													name: option.name,
+													option: value,
+													metadata: null,
+													purchaseData: null,
+													innerErrors: {
+														purchaseIdError: null,
+														purchaseMetaIdError: null,
+														metaIdError: null,
+													},
+												});
+											} else {
+												setSelectedOptions((selOptions) => [
+													...selOptions,
+													{
+														id: option.id,
+														option: value,
+														name: option.name,
+														purchaseData: null,
+														metadata: null,
+														innerErrors: {
+															purchaseIdError: null,
+															purchaseMetaIdError: null,
+															metaIdError: null,
+														},
+													},
+												]);
+											}
+										}}
 									/>
-									<SelectBox
-										isMulti
-										id={option.id + '-key-features'}
-										name={option.id + '-key-features'}
-										label={t('keyFeatures')}
-										className={'mb-4'}
-										options={option.options}
-									/>
+									{getSelectedOption(option.id) != null ? (
+										getSelectedOption(option.id)?.option.value === fileTypes[1].value ? (
+											<>
+												<SelectBox
+													id={option.id + '-meta-id'}
+													name={option.id + '-meta-id'}
+													label={t('columnMetaId')}
+													className={'mb-4'}
+													value={
+														getSelectedOption(option.id)?.metadata?.metaId != null
+															? {
+																	label: getSelectedOption(option.id)?.metadata?.metaId,
+																	value: getSelectedOption(option.id)?.metadata?.metaId,
+															  }
+															: undefined
+													}
+													error={getSelectedOption(option.id)?.innerErrors.metaIdError ?? undefined}
+													options={option.options}
+													onChange={(value: any) => {
+														updateSelectValue(option.id, {
+															metadata: {
+																...getSelectedOption(option.id)?.metadata,
+																metaId: value.value,
+															},
+														});
+													}}
+												/>
+												<SelectBox
+													id={option.id + '-meta-name'}
+													name={option.id + '-meta-name'}
+													label={t('columnMetaName')}
+													className={'mb-4'}
+													value={
+														getSelectedOption(option.id)?.metadata?.name != null
+															? {
+																	label: getSelectedOption(option.id)?.metadata?.name,
+																	value: getSelectedOption(option.id)?.metadata?.name,
+															  }
+															: undefined
+													}
+													options={option.options}
+													onChange={(value: any) => {
+														updateSelectValue(option.id, {
+															metadata: {
+																...getSelectedOption(option.id)?.metadata,
+																name: value.value,
+															},
+														});
+													}}
+												/>
+											</>
+										) : (
+											<>
+												<SelectBox
+													id={option.id + '-user-id'}
+													name={option.id + '-user-id'}
+													label={t('columnUserId')}
+													className={'mb-4'}
+													error={
+														getSelectedOption(option.id)?.innerErrors.purchaseIdError ?? undefined
+													}
+													value={
+														getSelectedOption(option.id)?.purchaseData?.purchaseId != null
+															? {
+																	label: getSelectedOption(option.id)?.purchaseData?.purchaseId,
+																	value: getSelectedOption(option.id)?.purchaseData?.purchaseId,
+															  }
+															: undefined
+													}
+													options={option.options}
+													onChange={(value: any) => {
+														updateSelectValue(option.id, {
+															purchaseData: {
+																...getSelectedOption(option.id)?.purchaseData,
+																purchaseId: value.value,
+															},
+														});
+													}}
+												/>
+												<SelectBox
+													id={option.id + '-purchase-meta-id'}
+													name={option.id + '-purchase-meta-id'}
+													label={t('columnMetaId')}
+													className={'mb-4'}
+													error={
+														getSelectedOption(option.id)?.innerErrors.purchaseMetaIdError ??
+														undefined
+													}
+													value={
+														getSelectedOption(option.id)?.purchaseData?.purchaseMetaId != null
+															? {
+																	label: getSelectedOption(option.id)?.purchaseData?.purchaseMetaId,
+																	value: getSelectedOption(option.id)?.purchaseData?.purchaseMetaId,
+															  }
+															: undefined
+													}
+													options={option.options}
+													onChange={(value: any) => {
+														updateSelectValue(option.id, {
+															purchaseData: {
+																...getSelectedOption(option.id)?.purchaseData,
+																purchaseMetaId: value.value,
+															},
+														});
+													}}
+												/>
+											</>
+										)
+									) : null}
 								</div>
 							))}
 						</div>

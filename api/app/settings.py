@@ -32,6 +32,9 @@ CORS_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
+# Uploaded files
+UPLOAD_FILE_PATH = '/uploads/'
+
 
 class JWTSettings(BaseModel):
     authjwt_secret_key: str = os.getenv("JWT_SECRET")
