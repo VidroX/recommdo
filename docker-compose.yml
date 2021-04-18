@@ -9,6 +9,9 @@ services:
       - "8080:8080"
     volumes:
       - ./api/app:/app/app
+    depends_on:
+      - mongo
+      - redis
     links:
       - mongo
   frontend:
@@ -23,6 +26,25 @@ services:
       - ./frontend:/usr/src/frontend
       - /usr/src/frontend/node_modules
       - /usr/src/frontend/.next
+  worker:
+    build:
+      context: ./api/
+      dockerfile: Dockerfile-dev
+    env_file: .env
+    volumes:
+      - ./api/app/celery:/app/app/celery
+    links:
+      - redis
+    depends_on:
+      - api
+      - redis
+    entrypoint: celery --app app.celery.celery_app worker -c 2 --loglevel=info
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    env_file: .env
+    command: redis-server --requirepass ${REDIS_PASSWORD}
   mongo:
     image: mongo:latest
     env_file:

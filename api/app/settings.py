@@ -14,6 +14,9 @@ DATABASE_USERNAME = os.getenv("DATABASE_USERNAME")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 DATABASE_NAME = os.getenv("DATABASE_NAME")
 
+# Redis
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+
 # App-specific variables
 APP_NAME = os.getenv("APP_NAME")
 APP_DESCRIPTION = os.getenv("APP_DESCRIPTION")

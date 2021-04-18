@@ -52,7 +52,7 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 				<div className="md:mx-auto max-w-7xl w-full px-4">{children}</div>
 			</main>
 			{showFooter && (
-				<footer className="grid grid-cols-1 mt-4">
+				<footer className="grid grid-cols-1 mt-4 mb-6">
 					<div className="md:mx-auto max-w-7xl w-full px-4">
 						&copy; {config.general.appName}, {new Date().getFullYear()}. {t('rightsReserved')}.
 					</div>

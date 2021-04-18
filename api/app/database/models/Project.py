@@ -8,6 +8,7 @@ from app.database.models.FileLocation import FileLocation
 
 class Project(Model, ABC):
     name: str
+    analyzed: bool = True
     files: Optional[List[FileLocation]] = []
 
     class Config:

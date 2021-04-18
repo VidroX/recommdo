@@ -26,6 +26,15 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def add_background_tasks_to_response(request: Request, call_next):
+    request.state.background = None
+    response = await call_next(request)
+    if request.state.background:
+        response.background = request.state.background
+    return response
+
+
 @AuthJWT.load_config
 def get_config():
     return JWTSettings()
