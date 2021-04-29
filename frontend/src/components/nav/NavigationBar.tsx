@@ -75,7 +75,7 @@ const NavigationBar = () => {
 						</li>
 					</ul>
 					<ul className="flex flex-col md:flex-row">
-						<li className="flex mt-1 md:mt-0 md:mr-2">
+						{/*<li className="flex mt-1 md:mt-0 md:mr-2">
 							<Link
 								href="/admin/settings/"
 								className={
@@ -87,7 +87,7 @@ const NavigationBar = () => {
 								<RiSettings4Fill size={20} className="mr-1" />
 								<span className="md:hidden"> {t('settingsTitle')}</span>
 							</Link>
-						</li>
+						</li>*/}
 						<li className="flex mt-1 md:mt-0">
 							<Link
 								href="/admin/logout/"

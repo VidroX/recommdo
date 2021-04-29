@@ -9,6 +9,9 @@ STATUS_CODE = {
     # General
     50: "Not all required fields present",
     51: "You do not have enough permission to do this",
+    52: "Query params are required",
+    53: "Provided ID is not valid",
+    54: "Invalid page",
     # User related
     100: "Incorrect E-Mail or Password",
     101: "User with the same E-Mail already exists",
@@ -16,8 +19,14 @@ STATUS_CODE = {
     103: "Invalid E-Mail",
     104: "Unable to register with given information",
     105: "You do not have enough permissions to do that!",
+    106: "Cannot find specified Access Level",
     # Project related
     200: "Given Project Name already exists",
+    201: "Requested project not found",
+    203: "Project is not present in one of the models",
+    204: "Not enough information about given user",
+    205: "No metadata information found for the requested project",
+    206: "No subscriptions information found for the requested project",
     # Upload related
     900: "Unable to upload file(-s)"
 }

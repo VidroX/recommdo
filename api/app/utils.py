@@ -4,6 +4,7 @@ from odmantic import AIOEngine
 from app import settings
 from app.api.utils.AuthUtils import create_admin_user, AccessLevelExists, create_default_access_levels
 from app.database.database import db
+from app.database.models.Purchase import Purchase
 from app.logger import logger
 
 

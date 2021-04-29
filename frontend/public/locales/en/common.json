@@ -6,5 +6,17 @@
   "requiredField": "This field is required",
   "projectsTitle": "Projects",
   "logout": "Sign out",
-  "create": "Create"
+  "create": "Create",
+  "actions": "Actions",
+  "delete": "Delete",
+  "ok": "OK",
+  "cancel": "Cancel",
+  "notEnoughPermissions": "You do not have enough permissions to view this page!",
+  "loggingOut": "Logging out...",
+  "search": "Search",
+  "generalError": "There was an error while performing your request",
+  "user": "User",
+  "userInfo": "User Info",
+  "projectSettings": "Project Settings",
+  "notDefined": "Not defined"
 }

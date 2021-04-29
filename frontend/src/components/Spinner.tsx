@@ -8,6 +8,7 @@ interface SpinnerProps {
 	overlayColor?: string;
 	spinnerColor?: string;
 	className?: string;
+	description?: string | null;
 }
 
 const Spinner = ({
@@ -16,25 +17,34 @@ const Spinner = ({
 	overlayColor = 'rgba(0,0,0,0.25)',
 	spinnerColor = 'var(--color-primary)',
 	className = '',
+	description = null,
 }: SpinnerProps) => {
 	if (overlayMode) {
 		return (
 			<div
 				style={{ backgroundColor: overlayColor, color: spinnerColor }}
-				className={'flex min-h-full justify-center items-center '.concat(styles.absoluteOverlay)}>
+				className={'flex min-h-full justify-center items-center flex-col '.concat(
+					styles.absoluteOverlay
+				)}>
 				<ImSpinner10
 					size={size}
+					color={spinnerColor}
 					className={'animate-spin'.concat(className?.length > 0 ? ' ' + className : '')}
 				/>
+				{description != null && <p className="mt-2 text-center">{description}</p>}
 			</div>
 		);
 	}
 
 	return (
-		<ImSpinner10
-			size={size}
-			className={'animate-spin'.concat(className?.length > 0 ? ' ' + className : '')}
-		/>
+		<>
+			<ImSpinner10
+				size={size}
+				color={spinnerColor}
+				className={'animate-spin'.concat(className?.length > 0 ? ' ' + className : '')}
+			/>
+			{description != null && <p className="mt-2 text-center">{description}</p>}
+		</>
 	);
 };
 

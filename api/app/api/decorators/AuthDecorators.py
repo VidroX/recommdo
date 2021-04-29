@@ -1,5 +1,7 @@
+from functools import wraps
+
 from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import MissingTokenError, InvalidHeaderError, RevokedTokenError
+from fastapi_jwt_auth.exceptions import MissingTokenError, InvalidHeaderError, RevokedTokenError, AccessTokenRequired
 from graphql import GraphQLError, ResolveInfo
 
 from app.api.status_codes import STATUS_CODE
@@ -32,6 +34,8 @@ def gql_jwt_required(func):
             raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
         except RevokedTokenError:
             raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+        except AccessTokenRequired:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         kwargs['jwt'] = jwt
 
@@ -50,6 +54,8 @@ def gql_full_jwt_required(func):
         except InvalidHeaderError:
             raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
         except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+        except AccessTokenRequired:
             raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         user_subject = jwt.get_jwt_subject() or None
@@ -78,6 +84,8 @@ def gql_refresh_jwt_required(func):
             raise GraphQLError(STATUS_CODE[4], extensions={'code': 4})
         except RevokedTokenError:
             raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+        except AccessTokenRequired:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         kwargs['jwt'] = jwt
 
@@ -85,29 +93,41 @@ def gql_refresh_jwt_required(func):
     return gql_refresh_jwt_required_decorator
 
 
-def only_admin(func):
-    def gql_only_admin_decorator(*args, **kwargs):
-        jwt = get_jwt_instance(*args, **kwargs)
+def access_level_required(access_level=1, admin_check=False):
+    def _decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            jwt = get_jwt_instance(*args, **kwargs)
 
-        try:
-            jwt.jwt_required()
-        except MissingTokenError:
-            raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
-        except InvalidHeaderError:
-            raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
-        except RevokedTokenError:
-            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+            try:
+                jwt.jwt_required()
+            except MissingTokenError:
+                raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
+            except InvalidHeaderError:
+                raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
+            except RevokedTokenError:
+                raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+            except AccessTokenRequired:
+                raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
-        subject = jwt.get_jwt_subject() or None
-        token_claims = jwt.get_raw_jwt() or None
+            subject = jwt.get_jwt_subject() or None
+            token_claims = jwt.get_raw_jwt() or None
 
-        if not subject or not token_claims or not token_claims["access_level"]["is_staff"]:
-            raise GraphQLError(STATUS_CODE[105], extensions={'code': 105})
+            if not subject or not token_claims:
+                raise GraphQLError(STATUS_CODE[0], extensions={'code': 0})
 
-        kwargs['jwt'] = jwt
+            if (admin_check and not token_claims["access_level"]["is_staff"] and
+                int(token_claims["access_level"]["level"]) < access_level) or\
+                    int(token_claims["access_level"]["level"]) < access_level:
+                raise GraphQLError(STATUS_CODE[105], extensions={'code': 105})
 
-        return func(*args, **kwargs)
-    return gql_only_admin_decorator
+            kwargs['jwt'] = jwt
+            kwargs['jwt_subject'] = subject
+            kwargs['jwt_claims'] = token_claims
+
+            return func(*args, **kwargs)
+        return wrapper
+    return _decorator(access_level) if callable(access_level) else _decorator
 
 
 def gql_jwt_optional(func):
@@ -119,6 +139,8 @@ def gql_jwt_optional(func):
         except InvalidHeaderError:
             raise GraphQLError(STATUS_CODE[2], extensions={'code': 2})
         except RevokedTokenError:
+            raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
+        except AccessTokenRequired:
             raise GraphQLError(STATUS_CODE[5], extensions={'code': 5})
 
         kwargs['jwt'] = jwt

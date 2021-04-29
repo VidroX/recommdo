@@ -2,21 +2,22 @@ import * as React from 'react';
 import { MouseEvent } from 'react';
 import Link from './Link';
 import { CgSpinner } from 'react-icons/cg';
+import { UrlObject } from 'url';
 
 interface ButtonProps {
 	onClick?: (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void;
 	loading?: boolean;
-	href?: string;
+	href?: string | UrlObject;
 	extraClasses?: string;
 	outlined?: boolean;
 	submitButton?: boolean;
 	disabled?: boolean;
 	title?: string;
 	locale?: string;
+	rounded?: boolean;
 }
 
 const defaultClasses = [
-	'rounded',
 	'bg-primary',
 	'text-white',
 	'focus:outline-none',
@@ -30,7 +31,6 @@ const defaultClasses = [
 ];
 
 const outlinedClasses = [
-	'rounded',
 	'bg-transparent',
 	'border-2',
 	'border-opacity-50',
@@ -58,6 +58,7 @@ const Button: React.FC<ButtonProps> = ({
 	submitButton = false,
 	disabled = false,
 	title = undefined,
+	rounded = true,
 }) => {
 	const classes = outlined ? outlinedClasses : defaultClasses;
 
@@ -73,14 +74,15 @@ const Button: React.FC<ButtonProps> = ({
 		);
 	};
 
-	if (href != null && href?.length > 0) {
+	if (href != null) {
 		if (disabled) {
 			return (
 				<div
 					title={title}
 					className={classes
 						.join(' ')
-						.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))}>
+						.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))
+						.concat(rounded != null && rounded ? ' rounded' : '')}>
 					{renderButtonContents()}
 				</div>
 			);
@@ -93,7 +95,8 @@ const Button: React.FC<ButtonProps> = ({
 				href={href}
 				className={classes
 					.join(' ')
-					.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))}>
+					.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))
+					.concat(rounded != null && rounded ? ' rounded' : '')}>
 				{renderButtonContents()}
 			</Link>
 		);
@@ -104,7 +107,10 @@ const Button: React.FC<ButtonProps> = ({
 			title={title}
 			disabled={disabled}
 			type={submitButton ? 'submit' : 'button'}
-			className={classes.join(' ').concat(extraClasses?.length > 0 ? ' ' + extraClasses : '')}
+			className={classes
+				.join(' ')
+				.concat(extraClasses?.length > 0 ? ' ' + extraClasses : '')
+				.concat(rounded != null && rounded ? ' rounded' : '')}
 			onClick={onClick}>
 			{renderButtonContents()}
 		</button>

@@ -10,6 +10,12 @@ module.exports = {
 					dark: '#008d7a',
 				},
 			},
+			scale: {
+				101: '1.01',
+				102: '1.02',
+				103: '1.03',
+				104: '1.04',
+			},
 			minWidth: {
 				150: '150px',
 				450: '450px',
@@ -21,6 +27,8 @@ module.exports = {
 				150: '150px',
 				450: '450px',
 				'25-percent': '25%',
+				'35-percent': '35%',
+				'40-percent': '40%',
 				'50-percent': '50%',
 				'75-percent': '75%',
 			},
@@ -34,7 +42,9 @@ module.exports = {
 			borderRadius: ['hover'],
 			borderWidth: ['hover'],
 			borderColor: ['hover'],
+			margin: ['last'],
+			scale: ['hover'],
 		},
 	},
-	plugins: [require('@tailwindcss/forms')],
+	plugins: [require('@tailwindcss/forms'), require('@tailwindcss/line-clamp')],
 };

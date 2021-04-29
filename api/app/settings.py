@@ -41,3 +41,4 @@ UPLOAD_FILE_PATH = '/uploads/'
 
 class JWTSettings(BaseModel):
     authjwt_secret_key: str = os.getenv("JWT_SECRET")
+    authjwt_access_token_expires: int = 3600

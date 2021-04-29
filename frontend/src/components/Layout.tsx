@@ -6,6 +6,7 @@ import { useTranslation } from 'next-i18next';
 import { GoogleFonts } from 'next-google-fonts';
 import { useRouter } from 'next/router';
 import Link from './buttons/Link';
+import { useEffect } from 'react';
 
 interface DefaultLayoutProps {
 	pageName?: string;
@@ -24,7 +25,7 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 	children,
 }) => {
 	const { t } = useTranslation('common');
-	const { locale, defaultLocale, route } = useRouter();
+	const { locale, defaultLocale, route, query } = useRouter();
 
 	const customStyles = `
 		html,
@@ -59,12 +60,18 @@ const Layout: React.FC<DefaultLayoutProps> = ({
 					<div className="md:mx-auto max-w-7xl w-full px-4">
 						{config.general.appName} {t('differentLanguages')}:{' '}
 						{locale !== 'uk' && (
-							<Link locale="uk" className="underline text-primary" href={route}>
+							<Link
+								locale="uk"
+								className="underline text-primary"
+								href={{ pathname: route, query }}>
 								українська
 							</Link>
 						)}
 						{locale !== 'en' && (
-							<Link locale="en" className="underline text-primary" href={route}>
+							<Link
+								locale="en"
+								className="underline text-primary"
+								href={{ pathname: route, query }}>
 								English
 							</Link>
 						)}

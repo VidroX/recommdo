@@ -1,4 +1,4 @@
-import { isBefore } from 'date-fns';
+import { isAfter } from 'date-fns';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { REFRESH_TOKEN_MUTATION } from '../apollo/mutations/auth';
@@ -125,7 +125,7 @@ export const checkTokenValidity = (
 		decodedToken?.type != null &&
 		decodedToken.type === type &&
 		decodedToken?.exp != null &&
-		isBefore(new Date(), new Date(decodedToken.exp * 1000))
+		!isAfter(new Date(), new Date(decodedToken.exp * 1000))
 	);
 };
 

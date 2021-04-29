@@ -6,11 +6,22 @@ from odmantic import Model, Reference
 from app.database.models.Project import Project
 
 
-class Purchase(Model, ABC):
+class PurchaseHistory(Model, ABC):
     user_id: int
-    purchase_id: int
-    weight: Optional[int] = 1
     project: Project = Reference()
+    purchase_id: int
+    start_at: str
+    end_at: str
 
     class Config:
-        collection = "purchases"
+        collection = "detailed_purchases"
+
+
+class Purchase(Model, ABC):
+    user_id: int
+    weight: Optional[int] = 1
+    project: Project = Reference()
+    purchase_id: int
+
+    class Config:
+        collection = "weighted_purchases"

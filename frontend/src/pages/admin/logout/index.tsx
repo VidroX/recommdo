@@ -3,10 +3,17 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useApolloClient } from '@apollo/client';
 import { removeUserToken, TOKEN_TYPES } from '../../../utils/userUtils';
+import Spinner from '../../../components/Spinner';
+import { GetStaticProps } from 'next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import { config } from '../../../config';
+import { useTranslation } from 'next-i18next';
 
 const LogoutPage = () => {
 	const { route, push, locale, defaultLocale } = useRouter();
 	const apolloClient = useApolloClient();
+
+	const { t } = useTranslation('common');
 
 	useEffect(() => {
 		if (
@@ -25,7 +32,13 @@ const LogoutPage = () => {
 		}
 	}, [route, locale, defaultLocale]);
 
-	return <div>Logging out...</div>;
+	return <Spinner size={64} overlayColor="#FDFDFDFF" overlayMode description={t('loggingOut')} />;
 };
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => ({
+	props: {
+		...(await serverSideTranslations(locale ?? config.i18n.defaultLocale, ['common'])),
+	},
+});
 
 export default LogoutPage;

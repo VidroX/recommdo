@@ -1,15 +1,16 @@
-from typing import List, Optional
-from bson import ObjectId
+from typing import List
 from abc import ABC
-from odmantic import Model
+from odmantic import Model, ObjectId
 
 from app.database.models.FileLocation import FileLocation
 
 
 class Project(Model, ABC):
     name: str
-    analyzed: bool = True
-    files: Optional[List[FileLocation]] = []
+    imported: bool = False
+    analyzed: bool = False
+    files: List[FileLocation]
+    allowed_users: List[ObjectId] = []
 
     class Config:
         collection = "projects"

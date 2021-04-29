@@ -15,7 +15,9 @@ import SelectBox from '../../../components/inputs/SelectBox';
 import IconButtonWrapper from '../../../components/buttons/IconButtonWrapper';
 import { VscClose } from 'react-icons/vsc';
 import { useMutation } from '@apollo/client';
-import { CREATE_PROJECT_MUTATION } from '../../../apollo/mutations/recommendations';
+import { CREATE_PROJECT_MUTATION } from '../../../apollo/mutations/projects';
+import { useRouter } from 'next/router';
+import useUser from '../../../hooks/useUser';
 
 interface CreateProjectFormValues {
 	projectName: string;
@@ -36,9 +38,11 @@ interface Metadata {
 	name?: string;
 }
 
-interface PurchaseData {
-	purchaseId?: string;
-	purchaseMetaId?: string;
+interface SubscriptionsData {
+	subscriptionUserId?: string;
+	subscriptionMetaId?: string;
+	subscriptionStartFrom?: string;
+	subscriptionEndAt?: string;
 }
 
 interface SelectedOption {
@@ -49,10 +53,12 @@ interface SelectedOption {
 	error?: string;
 	innerErrors: {
 		metaIdError?: string | null;
-		purchaseIdError?: string | null;
-		purchaseMetaIdError?: string | null;
+		subscriptionsUserIdError?: string | null;
+		subscriptionsMetaIdError?: string | null;
+		subscriptionsStartFromError?: string | null;
+		subscriptionsEndAtError?: string | null;
 	};
-	purchaseData: PurchaseData | null;
+	subscriptionsData: SubscriptionsData | null;
 }
 
 interface UpdateSelectedOption {
@@ -61,11 +67,13 @@ interface UpdateSelectedOption {
 	option?: Option;
 	error?: string;
 	metadata?: Metadata | null;
-	purchaseData?: PurchaseData | null;
+	subscriptionsData?: SubscriptionsData | null;
 	innerErrors?: {
 		metaIdError?: string | null;
-		purchaseIdError?: string | null;
-		purchaseMetaIdError?: string | null;
+		subscriptionsUserIdError?: string | null;
+		subscriptionsMetaIdError?: string | null;
+		subscriptionsStartFromError?: string | null;
+		subscriptionsEndAtError?: string | null;
 	};
 }
 
@@ -73,9 +81,11 @@ interface ProjectMetadata {
 	metaFileName?: string | null;
 	metaIdHeader?: string | null;
 	metaNameHeader?: string | null;
-	purchaseFileName?: string | null;
-	purchaseMetaIdHeader?: string | null;
-	purchaseUserIdHeader?: string | null;
+	subscriptionsFileName?: string | null;
+	subscriptionsMetaIdHeader?: string | null;
+	subscriptionsUserIdHeader?: string | null;
+	subscriptionsStartFromHeader?: string | null;
+	subscriptionsEndAtHeader?: string | null;
 }
 
 interface OptionValues {
@@ -113,6 +123,10 @@ const CreateProject = () => {
 	const { t: commonTranslate } = useTranslation('common');
 	const { t } = useTranslation('projects');
 
+	const { push, locale, defaultLocale } = useRouter();
+
+	const user = useUser();
+
 	const [createErrors, setCreateErrors] = useState<CreateProjectFormValues>({
 		projectName: '',
 	});
@@ -120,10 +134,11 @@ const CreateProject = () => {
 	const [fileHeaders, setFileHeaders] = useState<CSVHeaderFile[]>([]);
 	const [dropzoneError, setDropzoneError] = useState<string | null>(null);
 	const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
+	const [optionError, setOptionError] = useState<string | null>(null);
 	const [fileTypes, setFileTypes] = useState<Option[]>([
 		{
-			label: t('userPurchases'),
-			value: 'purchase-data',
+			label: t('userSubscriptions'),
+			value: 'subscription-data',
 		},
 		{
 			label: t('editionsInformation'),
@@ -194,9 +209,11 @@ const CreateProject = () => {
 			metaFileName: null,
 			metaIdHeader: null,
 			metaNameHeader: null,
-			purchaseFileName: null,
-			purchaseMetaIdHeader: null,
-			purchaseUserIdHeader: null,
+			subscriptionsFileName: null,
+			subscriptionsMetaIdHeader: null,
+			subscriptionsUserIdHeader: null,
+			subscriptionsStartFromHeader: null,
+			subscriptionsEndAtHeader: null,
 		};
 
 		if (selectedOptions?.length > 0) {
@@ -206,9 +223,11 @@ const CreateProject = () => {
 				if (option1.metadata != null) {
 					option1.innerErrors.metaIdError = null;
 				}
-				if (option1.purchaseData != null) {
-					option1.innerErrors.purchaseMetaIdError = null;
-					option1.innerErrors.purchaseIdError = null;
+				if (option1.subscriptionsData != null) {
+					option1.innerErrors.subscriptionsUserIdError = null;
+					option1.innerErrors.subscriptionsMetaIdError = null;
+					option1.innerErrors.subscriptionsStartFromError = null;
+					option1.innerErrors.subscriptionsEndAtError = null;
 				}
 
 				for (const option2 of selectedOptions) {
@@ -229,17 +248,19 @@ const CreateProject = () => {
 
 				if (
 					option1.option.value === fileTypes[0].value &&
-					(option1.purchaseData == null || option1.purchaseData?.purchaseId == null)
+					(option1.subscriptionsData == null ||
+						option1.subscriptionsData?.subscriptionUserId == null)
 				) {
-					option1.innerErrors.purchaseIdError = commonTranslate('requiredField');
+					option1.innerErrors.subscriptionsUserIdError = commonTranslate('requiredField');
 					errorsFound = true;
 				}
 
 				if (
 					option1.option.value === fileTypes[0].value &&
-					(option1.purchaseData == null || option1.purchaseData?.purchaseMetaId == null)
+					(option1.subscriptionsData == null ||
+						option1.subscriptionsData?.subscriptionMetaId == null)
 				) {
-					option1.innerErrors.purchaseMetaIdError = commonTranslate('requiredField');
+					option1.innerErrors.subscriptionsMetaIdError = commonTranslate('requiredField');
 					errorsFound = true;
 				}
 
@@ -249,10 +270,13 @@ const CreateProject = () => {
 					projectMetadata.metaNameHeader = option1.metadata.name;
 				}
 
-				if (option1.option.value === fileTypes[0].value && option1.purchaseData != null) {
-					projectMetadata.purchaseFileName = option1.name;
-					projectMetadata.purchaseMetaIdHeader = option1.purchaseData.purchaseMetaId;
-					projectMetadata.purchaseUserIdHeader = option1.purchaseData.purchaseId;
+				if (option1.option.value === fileTypes[0].value && option1.subscriptionsData != null) {
+					projectMetadata.subscriptionsFileName = option1.name;
+					projectMetadata.subscriptionsMetaIdHeader = option1.subscriptionsData.subscriptionMetaId;
+					projectMetadata.subscriptionsUserIdHeader = option1.subscriptionsData.subscriptionUserId;
+					projectMetadata.subscriptionsStartFromHeader =
+						option1.subscriptionsData.subscriptionStartFrom;
+					projectMetadata.subscriptionsEndAtHeader = option1.subscriptionsData.subscriptionEndAt;
 				}
 			}
 
@@ -260,16 +284,14 @@ const CreateProject = () => {
 				setSubmitting(false);
 				return;
 			}
+		} else if (files.length > 0 && selectedOptions?.length <= 0) {
+			setOptionError(t('fileTypeEmpty'));
+			setSubmitting(false);
+			return;
 		}
 
 		try {
-			const {
-				data: {
-					createProject: {
-						project: { id },
-					},
-				},
-			} = await createProject({
+			const result = await createProject({
 				variables: {
 					projectName: values.projectName,
 					projectMetadataInput: projectMetadata,
@@ -285,7 +307,7 @@ const CreateProject = () => {
 				const currentError = errors[0];
 
 				switch (currentError.extensions.code) {
-					case 100: {
+					case 200: {
 						setCreateErrors({
 							projectName: t('nameExists'),
 						});
@@ -299,7 +321,7 @@ const CreateProject = () => {
 
 		if (success) {
 			try {
-				//
+				await push('/', '/', { locale: locale ?? defaultLocale });
 			} catch (e) {
 				config.general.isDev && console.log(e);
 			}
@@ -364,8 +386,8 @@ const CreateProject = () => {
 						if (newValues.metadata != null || newValues.metadata === null) {
 							obj.metadata = newValues.metadata;
 						}
-						if (newValues.purchaseData != null || newValues.purchaseData === null) {
-							obj.purchaseData = newValues.purchaseData;
+						if (newValues.subscriptionsData != null || newValues.subscriptionsData === null) {
+							obj.subscriptionsData = newValues.subscriptionsData;
 						}
 						if (newValues.innerErrors != null) {
 							obj.innerErrors = newValues.innerErrors;
@@ -379,15 +401,8 @@ const CreateProject = () => {
 		[selectedOptions]
 	);
 
-	useEffect(() => {
-		console.log(selectedOptions);
-	}, [selectedOptions]);
-
-	return (
-		<Layout pageName={t('newProject')}>
-			<div className="flex flex-1 justify-between items-center">
-				<h1 className="text-primary font-bold">{t('newProject')}</h1>
-			</div>
+	const renderForm = () => {
+		return (
 			<Formik
 				initialValues={{ projectName: '' }}
 				validationSchema={CreateProjectSchema}
@@ -471,7 +486,11 @@ const CreateProject = () => {
 										className={'mb-4'}
 										options={fileTypes}
 										value={getSelectedOption(option.id)?.option ?? undefined}
-										error={getSelectedOption(option.id)?.error ?? undefined}
+										error={
+											optionError == null
+												? getSelectedOption(option.id)?.error ?? undefined
+												: optionError
+										}
 										onChange={(value: Option) => {
 											const existingObj = selectedOptions.find((obj) => obj.id === option.id);
 
@@ -481,10 +500,12 @@ const CreateProject = () => {
 													name: option.name,
 													option: value,
 													metadata: null,
-													purchaseData: null,
+													subscriptionsData: null,
 													innerErrors: {
-														purchaseIdError: null,
-														purchaseMetaIdError: null,
+														subscriptionsUserIdError: null,
+														subscriptionsMetaIdError: null,
+														subscriptionsStartFromError: null,
+														subscriptionsEndAtError: null,
 														metaIdError: null,
 													},
 												});
@@ -495,11 +516,13 @@ const CreateProject = () => {
 														id: option.id,
 														option: value,
 														name: option.name,
-														purchaseData: null,
+														subscriptionsData: null,
 														metadata: null,
 														innerErrors: {
-															purchaseIdError: null,
-															purchaseMetaIdError: null,
+															subscriptionsUserIdError: null,
+															subscriptionsMetaIdError: null,
+															subscriptionsStartFromError: null,
+															subscriptionsEndAtError: null,
 															metaIdError: null,
 														},
 													},
@@ -566,49 +589,116 @@ const CreateProject = () => {
 													label={t('columnUserId')}
 													className={'mb-4'}
 													error={
-														getSelectedOption(option.id)?.innerErrors.purchaseIdError ?? undefined
+														getSelectedOption(option.id)?.innerErrors.subscriptionsUserIdError ??
+														undefined
 													}
 													value={
-														getSelectedOption(option.id)?.purchaseData?.purchaseId != null
+														getSelectedOption(option.id)?.subscriptionsData?.subscriptionUserId !=
+														null
 															? {
-																	label: getSelectedOption(option.id)?.purchaseData?.purchaseId,
-																	value: getSelectedOption(option.id)?.purchaseData?.purchaseId,
+																	label: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionUserId,
+																	value: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionUserId,
 															  }
 															: undefined
 													}
 													options={option.options}
 													onChange={(value: any) => {
 														updateSelectValue(option.id, {
-															purchaseData: {
-																...getSelectedOption(option.id)?.purchaseData,
-																purchaseId: value.value,
+															subscriptionsData: {
+																...getSelectedOption(option.id)?.subscriptionsData,
+																subscriptionUserId: value.value,
 															},
 														});
 													}}
 												/>
 												<SelectBox
-													id={option.id + '-purchase-meta-id'}
-													name={option.id + '-purchase-meta-id'}
+													id={option.id + '-subscription-meta-id'}
+													name={option.id + '-subscription-meta-id'}
 													label={t('columnMetaId')}
 													className={'mb-4'}
 													error={
-														getSelectedOption(option.id)?.innerErrors.purchaseMetaIdError ??
+														getSelectedOption(option.id)?.innerErrors.subscriptionsMetaIdError ??
 														undefined
 													}
 													value={
-														getSelectedOption(option.id)?.purchaseData?.purchaseMetaId != null
+														getSelectedOption(option.id)?.subscriptionsData?.subscriptionMetaId !=
+														null
 															? {
-																	label: getSelectedOption(option.id)?.purchaseData?.purchaseMetaId,
-																	value: getSelectedOption(option.id)?.purchaseData?.purchaseMetaId,
+																	label: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionMetaId,
+																	value: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionMetaId,
 															  }
 															: undefined
 													}
 													options={option.options}
 													onChange={(value: any) => {
 														updateSelectValue(option.id, {
-															purchaseData: {
-																...getSelectedOption(option.id)?.purchaseData,
-																purchaseMetaId: value.value,
+															subscriptionsData: {
+																...getSelectedOption(option.id)?.subscriptionsData,
+																subscriptionMetaId: value.value,
+															},
+														});
+													}}
+												/>
+												<SelectBox
+													id={option.id + '-subscription-start'}
+													name={option.id + '-subscription-start'}
+													label={t('subscriptionStartFromHeader')}
+													className={'mb-4'}
+													error={
+														getSelectedOption(option.id)?.innerErrors.subscriptionsStartFromError ??
+														undefined
+													}
+													value={
+														getSelectedOption(option.id)?.subscriptionsData
+															?.subscriptionStartFrom != null
+															? {
+																	label: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionStartFrom,
+																	value: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionStartFrom,
+															  }
+															: undefined
+													}
+													options={option.options}
+													onChange={(value: any) => {
+														updateSelectValue(option.id, {
+															subscriptionsData: {
+																...getSelectedOption(option.id)?.subscriptionsData,
+																subscriptionStartFrom: value.value,
+															},
+														});
+													}}
+												/>
+												<SelectBox
+													id={option.id + '-subscription-end'}
+													name={option.id + '-subscription-end'}
+													label={t('subscriptionEndAtHeader')}
+													className={'mb-4'}
+													error={
+														getSelectedOption(option.id)?.innerErrors.subscriptionsEndAtError ??
+														undefined
+													}
+													value={
+														getSelectedOption(option.id)?.subscriptionsData?.subscriptionEndAt !=
+														null
+															? {
+																	label: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionEndAt,
+																	value: getSelectedOption(option.id)?.subscriptionsData
+																		?.subscriptionEndAt,
+															  }
+															: undefined
+													}
+													options={option.options}
+													onChange={(value: any) => {
+														updateSelectValue(option.id, {
+															subscriptionsData: {
+																...getSelectedOption(option.id)?.subscriptionsData,
+																subscriptionEndAt: value.value,
 															},
 														});
 													}}
@@ -627,6 +717,20 @@ const CreateProject = () => {
 					</form>
 				)}
 			</Formik>
+		);
+	};
+
+	const renderError = () => {
+		return <div className="mt-5 font-semibold">{commonTranslate('notEnoughPermissions')}</div>;
+	};
+
+	return (
+		<Layout pageName={t('newProject')}>
+			<div className="flex flex-1 justify-between items-center">
+				<h1 className="text-primary font-bold">{t('newProject')}</h1>
+			</div>
+			{user?.accessLevel != null && user.accessLevel?.level <= 1 && renderError()}
+			{user?.accessLevel != null && user.accessLevel?.level > 1 && renderForm()}
 		</Layout>
 	);
 };

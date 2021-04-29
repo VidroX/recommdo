@@ -19,16 +19,20 @@ type AccessLevelModel {
 }
 
 type ApiMutation {
-    createProject(files: [Upload], projectMetadata: ProjectMetadataInput, projectName: String!): CreateProject
+    createProject(files: [Upload]!, projectMetadata: ProjectMetadataInput!, projectName: String!): CreateProject
     login(email: String!, password: String!): Login
     refresh: Refresh
-    register(accessLevel: AccessLevelInput, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
+    register(accessLevel: Int = 1, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
 }
 
 type ApiQuery {
     "The ID of the object"
     node(id: ID!): Node
+    project(projectId: String!): ProjectModel
+    projectPurchases(orderBy: String, page: Int = 1, projectId: String!, search: Float): PurchasesPaginationModel
+    projects: [ProjectModel]
     user: UserModel
+    userPurchases(projectId: String!, userId: Int!): [PurchaseModel]
     users: [UserModel]
 }
 
@@ -51,21 +55,31 @@ type MetadataModel {
     id: ID!
     metaId: Int!
     name: String
-    project: ProjectModel!
 }
 
 type ProjectModel {
-    files: [FileLocationModel]
+    allowedUsers: [UserModel]!
+    analyzed: Boolean!
+    files: [FileLocationModel]!
     id: ID!
+    imported: Boolean!
     name: String!
 }
 
 type PurchaseModel {
     id: ID!
-    metadata: MetadataModel
+    metadata: MetadataModel!
     project: ProjectModel!
-    purchaseId: Int!
     userId: Int!
+    weight: Int
+}
+
+type PurchasesPaginationModel {
+    currentPage: Int
+    pageAmount: Int
+    purchases: [PurchaseModel]!
+    shownEntries: Int
+    totalEntries: Int
 }
 
 type Refresh {
@@ -91,20 +105,15 @@ type UserModel {
     middleName: String
 }
 
-input AccessLevelInput {
-    description: String!
-    isStaff: Boolean!
-    level: Int!
-    name: String!
-}
-
 input ProjectMetadataInput {
-    metaFileName: String
-    metaIdHeader: String
+    metaFileName: String!
+    metaIdHeader: String!
     metaNameHeader: String
-    purchaseFileName: String
-    purchaseMetaIdHeader: String
-    purchaseUserIdHeader: String
+    subscriptionsEndAtHeader: String!
+    subscriptionsFileName: String!
+    subscriptionsMetaIdHeader: String!
+    subscriptionsStartFromHeader: String!
+    subscriptionsUserIdHeader: String!
 }
 
 

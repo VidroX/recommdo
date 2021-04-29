@@ -142,7 +142,7 @@ const LoginPage = () => {
 									id="email"
 									name="email"
 									label="E-Mail"
-									className="mb-2"
+									className="mb-2 mt-1"
 									placeholder="user@example.com"
 									onChange={handleChange}
 									onBlur={handleBlur}
@@ -160,7 +160,7 @@ const LoginPage = () => {
 									id="password"
 									name="password"
 									label={t('password')}
-									className="mb-5"
+									className="mb-5 mt-1"
 									placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
 									onChange={handleChange}
 									onBlur={handleBlur}

@@ -9,6 +9,10 @@ interface InputProps {
 	name: string;
 	label?: string | null;
 	className?: string;
+	inputClassName?: string;
+	rounded?: boolean;
+	min?: number;
+	max?: number;
 	error?: string | null;
 	onSubmit?: (e: FormEvent<HTMLInputElement>) => void;
 	onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -18,8 +22,6 @@ interface InputProps {
 const outlinedGeneralClasses = [
 	'flex',
 	'w-full',
-	'mt-1',
-	'rounded',
 	'border-transparent',
 	'bg-gray-100',
 	'outline-none',
@@ -42,10 +44,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 			value = '',
 			placeholder = '',
 			className = '',
+			inputClassName = '',
 			error = null,
 			onChange = (e) => {},
 			onBlur = (e) => {},
 			onSubmit = (e) => {},
+			rounded = true,
+			min = undefined,
+			max = undefined,
 			...rest
 		},
 		ref
@@ -60,11 +66,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 				<div className="block">
 					<input
 						ref={ref}
-						className={outlinedGeneralClasses
-							.join(' ')
+						className={(inputClassName != null && inputClassName.length > 0
+							? inputClassName + ' ' + outlinedGeneralClasses.join(' ')
+							: outlinedGeneralClasses.join(' ')
+						)
 							.concat(
 								error != null ? ' ' + errorClasses.join(' ') : ' ' + nonErrorClasses.join(' ')
-							)}
+							)
+							.concat(rounded != null && rounded ? ' rounded' : '')}
 						id={id}
 						name={name}
 						type={type}
@@ -73,6 +82,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 						onChange={onChange}
 						onBlur={onBlur}
 						onSubmit={onSubmit}
+						min={min}
+						max={max}
 						{...rest}
 					/>
 					{error != null && <span className="text-red-500 mt-1">{error}</span>}

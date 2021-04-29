@@ -2,9 +2,10 @@ import * as React from 'react';
 import NavLink from 'next/link';
 import { useRouter } from 'next/router';
 import { CSSProperties, useState } from 'react';
+import { UrlObject } from 'url';
 
 interface CustomLinkProps {
-	href?: string;
+	href?: string | UrlObject;
 	className?: string;
 	locale?: string;
 	title?: string;

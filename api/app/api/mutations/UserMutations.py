@@ -2,12 +2,12 @@ import graphene
 from email_validator import validate_email, EmailNotValidError
 from graphql import GraphQLError
 
-from app.api.decorators.AuthDecorators import gql_jwt, only_admin, gql_refresh_jwt_required
+from app.api.decorators.AuthDecorators import gql_jwt, gql_refresh_jwt_required, access_level_required
 from app.api.models.UserModel import UserModel
 from app.api.mutations.types.AccessLevelInput import AccessLevelInput
 from app.api.mutations.types.TokenData import TokenData
 from app.api.status_codes import STATUS_CODE
-from app.api.utils.AuthUtils import create_normal_user, create_user
+from app.api.utils.AuthUtils import create_normal_user, create_user, DEFAULT_ADMIN_ACCESS_LEVEL
 from app.database.database import db
 from app.database.models.AccessLevel import AccessLevel
 from app.database.models.User import User
@@ -34,7 +34,7 @@ class Login(graphene.Mutation):
         if user is None:
             raise GraphQLError(STATUS_CODE[100], extensions={'code': 100})
 
-        if not argon2.using(rounds=4, type="id").verify(password, user.password):
+        if not argon2.using(rounds=4).verify(password, user.password):
             raise GraphQLError(STATUS_CODE[100], extensions={'code': 100})
 
         jwt = kwargs['jwt']
@@ -62,13 +62,13 @@ class Register(graphene.Mutation):
         first_name = graphene.String(required=True)
         last_name = graphene.String(required=True)
         middle_name = graphene.String(required=False, default_value="")
-        access_level = AccessLevelInput(required=False)
+        access_level = graphene.Int(required=False, default_value=1)
 
     user = graphene.Field(UserModel)
     tokens = graphene.Field(TokenData)
 
     @staticmethod
-    @only_admin
+    @access_level_required(DEFAULT_ADMIN_ACCESS_LEVEL.level, True)
     async def mutate(root, info, email=None, password=None, first_name=None, last_name=None, middle_name="",
                      access_level=None, **kwargs):
         if email is None or password is None or first_name is None or last_name is None:
@@ -90,9 +90,8 @@ class Register(graphene.Mutation):
             raise GraphQLError(STATUS_CODE[102], extensions={'code': 102})
 
         jwt = kwargs['jwt']
-
-        user_subject = jwt.get_jwt_subject() or None
-        token_claims = jwt.get_raw_jwt() or None
+        user_subject = kwargs['jwt_subject']
+        token_claims = kwargs['jwt_claims']
 
         if user_subject is None or token_claims is None:
             created_user = await create_normal_user(
@@ -100,21 +99,20 @@ class Register(graphene.Mutation):
                 first_name=first_name,
                 last_name=last_name,
                 middle_name=middle_name,
-                password=argon2.hash(password)
+                password=password
             )
         elif user_subject is not None and token_claims is not None and token_claims["access_level"]["is_staff"]:
-            level = AccessLevel(
-                level=access_level.level,
-                name=access_level.name,
-                description=access_level.description,
-                is_staff=access_level.is_staff
-            )
+            level = await db.engine.find_one(AccessLevel, AccessLevel.level == access_level)
+
+            if level is None:
+                raise GraphQLError(STATUS_CODE[106], extensions={'code': 106})
+
             created_user = await create_user(
                 email=valid_email,
                 first_name=first_name,
                 last_name=last_name,
                 middle_name=middle_name,
-                password=argon2.hash(password),
+                password=password,
                 access_level=level
             )
         else:
