@@ -36,7 +36,7 @@ CORS_ORIGINS = [
 ]
 
 # Uploaded files
-UPLOAD_FILE_PATH = '/uploads/'
+UPLOAD_FILE_PATH = '/app/uploads/'
 
 
 class JWTSettings(BaseModel):

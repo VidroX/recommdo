@@ -30,7 +30,6 @@ pandas==1.2.4
 passlib==1.7.4
 promise==2.3
 prompt-toolkit==3.0.18
-py4j==0.10.9
 pycparser==2.20
 pydantic==1.7.3
 PyJWT==1.7.1

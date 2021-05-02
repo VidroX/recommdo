@@ -6,51 +6,51 @@ import { GetStaticPaths, GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { config } from '../../../config';
 import { useRouter } from 'next/router';
-import { GET_PROJECT_PURCHASES_QUERY, GET_PROJECT_QUERY } from '../../../apollo/mutations/projects';
-import { useCallback, useEffect, useState } from 'react';
-import DataTable, { IDataTableColumn } from 'react-data-table-component';
-import Spinner from '../../../components/Spinner';
-import Input from '../../../components/inputs/Input';
+import {
+	GET_PROJECT_METADATA_QUERY,
+	GET_PROJECT_QUERY,
+	GET_PROJECT_STATISTICS_QUERY,
+} from '../../../apollo/mutations/projects';
+import { useEffect, useMemo, useState } from 'react';
 import Button from '../../../components/buttons/Button';
-import { CgSearch } from 'react-icons/cg';
 import { RiSettings4Fill } from 'react-icons/ri';
+import { FaShoppingBasket } from 'react-icons/fa';
 import Link from '../../../components/buttons/Link';
+import { InnerProjectObject, ProjectObject } from './purchases';
+import StatisticsGraph, { NivoPieDataOption } from '../../../components/graphs/StatisticsGraph';
+import SelectBox from '../../../components/inputs/SelectBox';
+import Spinner from '../../../components/Spinner';
+import useUser from '../../../hooks/useUser';
 
-export interface ProjectObject {
-	project: {
-		id: string;
-		name: string;
-		analyzed: boolean;
-		imported: boolean;
+export interface InnerStatistic {
+	stars: number;
+	count: number;
+	percentage: number;
+}
+
+interface ProjectStatistics {
+	projectStatistics: {
+		statistics: InnerStatistic[];
+		metadata?: Metadata | null;
+		project: InnerProjectObject;
 	};
 }
 
-export interface Metadata {
+interface Metadata {
 	id: string;
+	name?: string | null;
 	metaId: number;
-	name: string;
 }
 
-export interface ProjectPurchase {
-	id: string;
-	userId: number;
-	weight: number;
-	metadata?: Metadata | null;
+interface ProjectMetadata {
+	allMetadata: Metadata[];
 }
 
-interface ProjectPurchases {
-	projectPurchases: {
-		purchases: ProjectPurchase[];
-		currentPage: number;
-		pageAmount: number;
-		showEntries: number;
-		totalEntries: number;
-	};
-}
-
-interface Sort {
-	direction: string;
-	field: string;
+interface Option {
+	value: string;
+	label: string;
+	id: number | null;
+	objectId: string | null;
 }
 
 const Project = () => {
@@ -59,156 +59,115 @@ const Project = () => {
 	const router = useRouter();
 	const { pid } = router.query;
 
-	const [localLoading, setLocalLoading] = useState(false);
-	const [shouldPoll, setShouldPoll] = useState(true);
-	const [searchVal, setSearchVal] = useState('');
-	const [tablePage, setTablePage] = useState(1);
-	const [sortOrder, setSortOrder] = useState('-userId');
-	const [sortDirection, setSortDirection] = useState<Sort>({
-		direction: 'desc',
-		field: 'userId',
-	});
+	const user = useUser();
 
-	const { loading, data, error } = useQuery<ProjectObject>(GET_PROJECT_QUERY, {
+	const [selectedOption, setSelectedOption] = useState<Option>({
+		label: t('allItems'),
+		value: 'all',
+		id: null,
+		objectId: null,
+	});
+	const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+	const [selectedItemObjectId, setSelectedItemObjectId] = useState<string | null>(null);
+	const [generatedItems, setGeneratedItems] = useState<NivoPieDataOption[]>([]);
+
+	const {
+		loading: projectLoading,
+		data: projectData,
+		error: projectError,
+	} = useQuery<ProjectObject>(GET_PROJECT_QUERY, {
 		fetchPolicy: 'network-only',
-		pollInterval: shouldPoll ? 300000 : 0,
 		variables: {
 			projectId: pid,
+		},
+	});
+
+	const { loading, data, error } = useQuery<ProjectStatistics>(GET_PROJECT_STATISTICS_QUERY, {
+		variables: {
+			projectId: pid,
+			itemId: selectedItemId,
 		},
 	});
 
 	const {
-		loading: purchaseLoading,
-		data: purchaseData,
-		error: purchaseError,
-		refetch,
-	} = useQuery<ProjectPurchases>(GET_PROJECT_PURCHASES_QUERY, {
-		skip: shouldPoll,
-		fetchPolicy: 'network-only',
-		pollInterval: shouldPoll ? 300000 : 0,
+		loading: metadataLoading,
+		data: metadata,
+		error: metadataError,
+	} = useQuery<ProjectMetadata>(GET_PROJECT_METADATA_QUERY, {
 		variables: {
 			projectId: pid,
-			page: tablePage,
-			orderBy: sortOrder,
 		},
 	});
 
-	const columns = [
-		{
-			name: t('userId'),
-			selector: 'userId',
-			sortable: true,
-		},
-		{
-			name: t('item'),
-			selector: 'purchaseId',
-			cell: (row: ProjectPurchase) =>
-				row.metadata?.name != null ? row.metadata.name : t('notDefined'),
-			sortable: true,
-		},
-		{
-			name: t('purchaseAmount'),
-			selector: 'weight',
-			sortable: true,
-		},
-	];
-
-	useEffect(() => {
-		if (data?.project != null && pid != null && data.project.analyzed && data.project.imported) {
-			setShouldPoll(false);
+	const options = useMemo(() => {
+		if (metadata?.allMetadata == null || metadata.allMetadata.length <= 0) {
+			return [
+				{
+					label: t('allItems'),
+					value: 'all',
+					id: null,
+				},
+			];
 		}
-	}, [pid, data]);
 
-	const onTablePageChange = (page: number, rowsPerPage: number) => {
-		setLocalLoading(true);
-		setTablePage(page);
-		refetch({
-			page,
-			orderBy: sortOrder ?? undefined,
-			search: searchVal?.length > 0 ? searchVal : undefined,
-		})?.finally(() => {
-			setLocalLoading(false);
-		});
-	};
+		const items: Option[] = [
+			{
+				label: t('allItems'),
+				value: 'all',
+				id: null,
+				objectId: null,
+			},
+		];
 
-	const onTableSort = (column: IDataTableColumn<ProjectPurchase>, sortDir: 'asc' | 'desc') => {
-		setLocalLoading(true);
-
-		const selector = column.selector === 'metadata.name' ? 'purchaseId' : column.selector;
-		const localSortOrder = (sortDir === 'asc' ? '' : '-') + selector;
-
-		setSortOrder(localSortOrder);
-		if (typeof column.selector === 'string') {
-			setSortDirection({
-				direction: sortDir,
-				field: column.selector,
-			});
-		} else {
-			setSortDirection({
-				direction: sortDir,
-				field: 'userId',
+		for (const obj of metadata.allMetadata) {
+			items.push({
+				label: obj.name ?? obj.metaId.toString(),
+				value: obj.metaId.toString(),
+				id: obj.metaId,
+				objectId: obj.id,
 			});
 		}
 
-		if (searchVal != null && searchVal.length > 0) {
-			refetch({ page: 1, search: searchVal, orderBy: localSortOrder }).finally(() => {
-				setLocalLoading(false);
-			});
-		} else {
-			refetch({ page: 1, orderBy: localSortOrder, search: undefined }).finally(() => {
-				setLocalLoading(false);
-			});
-		}
-	};
+		return items;
+	}, [metadata?.allMetadata]);
 
-	const generateSkeleton = useCallback((amount = 11, flex = false) => {
-		const arr = new Array(amount).fill(undefined);
-
-		return (
-			<div className={'animate-pulse' + (flex ? ' flex flex-1 flex-col' : '')}>
-				{arr.map((_, index) => (
-					<div
-						key={'skeleton-' + index}
-						className={'w-full h-12 bg-gray-300 rounded' + (index != 0 ? ' mt-2' : '')}
-					/>
-				))}
-			</div>
-		);
-	}, []);
-
-	const initiateSearch = () => {
-		if (searchVal != null) {
-			setLocalLoading(true);
-			if (searchVal.length > 0) {
-				refetch({ page: 1, search: searchVal, orderBy: sortOrder })?.finally(() => {
-					setLocalLoading(false);
-				});
-			} else {
-				refetch({ page: 1, orderBy: sortOrder, search: undefined })?.finally(() => {
-					setLocalLoading(false);
-				});
-			}
-		}
-	};
-
-	const onTableRowClick = (row: any) => {
-		if (row?.userId != null) {
+	const onGraphItemClick = (item: NivoPieDataOption) => {
+		if (item != null) {
 			router
-				.push('/projects/[pid]/[uid]/', '/projects/' + pid + '/' + row.userId + '/', {
-					locale: router.locale ?? router.defaultLocale,
-				})
+				.push(
+					'/projects/[pid]/item/[itemId]/[starsAmount]/',
+					'/projects/' +
+						pid +
+						'/item/' +
+						(selectedItemObjectId ? selectedItemObjectId : 'all') +
+						'/' +
+						item.stars,
+					{
+						locale: router.locale ?? router.defaultLocale,
+					}
+				)
 				.catch((e) => {
-					console.error('Unable to redirect to user page', e);
+					config.general.isDev &&
+						console.error('[Project Dashboard]', 'Unable to redirect to item stars page', e);
 				});
 		}
+	};
+
+	const onItemsGenerated = (items: NivoPieDataOption[]) => {
+		setGeneratedItems(items);
 	};
 
 	return (
-		<Layout pageName={data?.project.name ? data.project.name : commonTranslate('projectsTitle')}>
+		<Layout
+			pageName={
+				!projectError && !projectLoading && projectData?.project?.name
+					? projectData.project.name
+					: t('projectDashboard')
+			}>
 			<div className="flex flex-1 justify-between items-center">
-				{data?.project.name && !error && !purchaseError && !loading ? (
-					<>
-						<div className="flex flex-row select-none w-full md:max-w-75-percent">
+				{!projectError && !projectLoading && projectData?.project?.name ? (
+					<div className="flex flex-1 flex-col md:flex-row md:justify-between">
+						<div className="flex flex-row select-none w-full md:max-w-50-percent mb-2 md:mb-0">
 							<Link
 								className="text-black font-light hover:text-primary overflow-ellipsis overflow-hidden whitespace-nowrap break-all"
 								href="/">
@@ -217,116 +176,149 @@ const Project = () => {
 							<div className="flex flex-1 w-0 md:w-full">
 								<span className="text-black font-light mx-2 cursor-default">/</span>
 								<h1 className="font-bold text-primary cursor-default overflow-ellipsis overflow-hidden whitespace-nowrap break-all w-full md:w-72">
-									{data?.project.name}
+									{projectData.project.name}
 								</h1>
 							</div>
 						</div>
-						{!error && !purchaseError && data?.project.analyzed && data?.project.imported && (
-							<Button
-								title={commonTranslate('settingsTitle')}
-								href={{ pathname: '/projects/[pid]/settings', query: { pid } }}>
-								<RiSettings4Fill size={20} className="md:mr-2" />{' '}
-								<span className="hidden md:flex">{commonTranslate('settingsTitle')}</span>
-							</Button>
+						{!error && projectData?.project.analyzed && projectData?.project.imported && (
+							<div className="flex flex-row">
+								{user?.accessLevel?.isStaff && (
+									<Button
+										outlined
+										extraClasses="mr-2"
+										title={commonTranslate('settingsTitle')}
+										href={{ pathname: '/projects/[pid]/settings', query: { pid } }}>
+										<RiSettings4Fill size={20} />
+									</Button>
+								)}
+								<Button
+									title={t('allClientPurchases')}
+									href={{ pathname: '/projects/[pid]/purchases', query: { pid } }}>
+									<FaShoppingBasket size={20} className="mt-0.5 md:mt-0 md:mr-2" />{' '}
+									<span className="hidden md:flex text-sm md:mt-0.5">
+										{t('allClientPurchases')}
+									</span>
+								</Button>
+							</div>
 						)}
-					</>
+					</div>
 				) : (
-					!error &&
-					!purchaseError && (
+					!error && (
 						<div className="animate-pulse">
 							<div className="h-6 w-64 bg-gray-300 rounded" />
 						</div>
 					)
 				)}
 			</div>
-			<div className="flex flex-1 flex-col mt-6">
-				{purchaseError && t('dataNotFound')}
-				{!error ? (
-					!data?.project.imported ? (
+			{!projectError && !projectLoading ? (
+				!projectData?.project.imported ? (
+					<div className="flex flex-1 flex-col justify-center items-center my-8">
+						<Spinner spinnerColor="#02C2A8" size={48} description={t('beingImported')} />
+					</div>
+				) : (
+					!projectData.project.analyzed && (
 						<div className="flex flex-1 flex-col justify-center items-center my-8">
-							<Spinner spinnerColor="#02C2A8" size={48} description={t('beingImported')} />
+							<Spinner spinnerColor="#02C2A8" size={48} description={t('beingAnalyzed')} />
 						</div>
-					) : (
-						!data.project.analyzed && (
-							<div className="flex flex-1 flex-col justify-center items-center my-8">
-								<Spinner spinnerColor="#02C2A8" size={48} description={t('beingAnalyzed')} />
-							</div>
-						)
 					)
-				) : (
-					<p className="font-semibold justify-center items-center flex flex-1 text-center">
-						{commonTranslate('generalError')}
-					</p>
-				)}
-				{purchaseData?.projectPurchases == null ||
-				purchaseLoading ||
-				localLoading ||
-				!data?.project.imported ||
-				!data?.project.analyzed ? (
-					!purchaseError && data?.project.imported && data?.project.analyzed && generateSkeleton()
-				) : (
-					<div className="rounded shadow-md bg-white">
-						<div className="flex mb-2">
-							<Input
-								type="number"
-								id="search"
-								name="search"
-								className="w-full md:max-w-sm"
-								inputClassName="rounded-tl"
-								rounded={false}
-								placeholder={commonTranslate('search')}
-								onChange={(e) => {
-									setSearchVal(e.target.value);
-								}}
-								min={0}
-								value={searchVal}
-							/>
-							<Button
-								title={commonTranslate('search')}
-								rounded={false}
-								onClick={initiateSearch}
-								extraClasses="rounded-r">
-								<CgSearch size={20} />
-							</Button>
+				)
+			) : (
+				<p className="font-semibold justify-center items-center flex flex-1 text-center">
+					{commonTranslate('generalError')}
+				</p>
+			)}
+			{!projectError &&
+				!projectLoading &&
+				projectData?.project.analyzed &&
+				projectData?.project.imported && (
+					<div className="flex flex-1 flex-col mt-6">
+						<div className="flex flex-1">
+							<div className="flex flex-1 flex-col-reverse md:flex-row">
+								<div
+									className={[
+										'flex',
+										'flex-col',
+										'flex-1',
+										'justify-center',
+										'leading-6',
+										'md:leading-8',
+										'md:items-start',
+									].join(' ')}>
+									<div className="min-w-full md:min-w-50-percent">
+										{!error && !metadataError && (loading || metadataLoading) ? (
+											<div className="animate-pulse mb-4">
+												<div className="h-12 w-full md:w-72 bg-gray-300 rounded" />
+											</div>
+										) : (
+											<SelectBox
+												id={'items-list'}
+												name={'items-list'}
+												label={t('item')}
+												className={'mb-4'}
+												options={options}
+												value={selectedOption ?? undefined}
+												onChange={(value: Option) => {
+													setSelectedOption(value);
+													setSelectedItemId(value.id);
+													setSelectedItemObjectId(value.objectId);
+												}}
+											/>
+										)}
+										{!error && !metadataError && (loading || metadataLoading) ? (
+											<div className="animate-pulse">
+												<div className="h-64 w-full md:w-72 bg-gray-300 rounded" />
+											</div>
+										) : (
+											generatedItems.map((item, index) => (
+												<div
+													className="flex flex-col md:flex-row items-start md:items-center mb-2 md:mb-0"
+													key={'item-' + index}>
+													<div className="flex flex-row items-center">
+														<div
+															style={{ width: 14, height: 14, backgroundColor: item.color }}
+															className="rounded mr-2"
+														/>
+														<span className="mr-2 font-light">{item.id}</span>
+													</div>
+													<Link
+														className="text-primary hover:text-primary-dark"
+														href={{
+															pathname: '/projects/[pid]/item/[itemId]/[starsAmount]/',
+															query: {
+																pid,
+																itemId: selectedItemObjectId ? selectedItemObjectId : 'all',
+																starsAmount: item.stars,
+															},
+														}}>
+														{item.value} {t('clients')}
+													</Link>
+												</div>
+											))
+										)}
+									</div>
+								</div>
+								<div className="flex flex-1 items-center">
+									{!error && !metadataError && (loading || metadataLoading) ? (
+										<div
+											className="animate-pulse flex flex-1 justify-center items-center"
+											style={{ height: 500 }}>
+											<div
+												className="w-full bg-gray-300 rounded ml-0 md:ml-24"
+												style={{ height: 350 }}
+											/>
+										</div>
+									) : (
+										<StatisticsGraph
+											onItemsGenerated={onItemsGenerated}
+											statistics={data?.projectStatistics.statistics}
+											onGraphItemClick={onGraphItemClick}
+										/>
+									)}
+								</div>
+							</div>
 						</div>
-						<DataTable
-							noHeader
-							onRowClicked={onTableRowClick}
-							paginationServer
-							highlightOnHover
-							columns={columns}
-							progressPending={purchaseLoading || localLoading}
-							data={purchaseData.projectPurchases.purchases}
-							paginationTotalRows={purchaseData.projectPurchases.totalEntries}
-							pagination
-							sortServer
-							defaultSortAsc={sortDirection.direction === 'asc'}
-							defaultSortField={sortDirection.field}
-							onChangePage={onTablePageChange}
-							paginationDefaultPage={tablePage}
-							paginationRowsPerPageOptions={[10]}
-							progressComponent={generateSkeleton(10, true)}
-							paginationComponentOptions={{
-								noRowsPerPage: true,
-							}}
-							onSort={onTableSort}
-							customStyles={{
-								pagination: {
-									style: {
-										backgroundColor: 'transparent',
-									},
-								},
-								rows: {
-									style: {
-										cursor: 'pointer',
-										userSelect: 'none',
-									},
-								},
-							}}
-						/>
 					</div>
 				)}
-			</div>
 		</Layout>
 	);
 };

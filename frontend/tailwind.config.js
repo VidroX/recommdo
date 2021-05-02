@@ -32,6 +32,9 @@ module.exports = {
 				'50-percent': '50%',
 				'75-percent': '75%',
 			},
+			marginTop: {
+				0.25: '0.0625rem'
+			}
 		},
 	},
 	variants: {

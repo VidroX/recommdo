@@ -6,7 +6,6 @@ import { useTranslation } from 'next-i18next';
 import { GoogleFonts } from 'next-google-fonts';
 import { useRouter } from 'next/router';
 import Link from './buttons/Link';
-import { useEffect } from 'react';
 
 interface DefaultLayoutProps {
 	pageName?: string;

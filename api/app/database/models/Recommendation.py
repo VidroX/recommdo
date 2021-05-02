@@ -1,15 +1,16 @@
 from abc import ABC
-from typing import Optional
 
 from odmantic import Model, Reference
 
 from app.database.models.Project import Project
 
 
-class Metadata(Model, ABC):
-    meta_id: int
-    name: Optional[str]
+class Recommendation(Model, ABC):
+    user_id: int
     project: Project = Reference()
+    item_id: int
+    score: float
+    user_item_weight: int
 
     class Config:
-        collection = "metadata"
+        collection = "recommendations"

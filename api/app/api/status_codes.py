@@ -20,6 +20,7 @@ STATUS_CODE = {
     104: "Unable to register with given information",
     105: "You do not have enough permissions to do that!",
     106: "Cannot find specified Access Level",
+    107: "Requested user not found",
     # Project related
     200: "Given Project Name already exists",
     201: "Requested project not found",
@@ -27,6 +28,10 @@ STATUS_CODE = {
     204: "Not enough information about given user",
     205: "No metadata information found for the requested project",
     206: "No subscriptions information found for the requested project",
+    207: "Requested Item not found",
+    208: "Project is empty or has not enough data to show statistics",
+    209: "Provided item id is incorrect",
+    210: "Provided stars value is incorrect. Correct values are between 1 and 5.",
     # Upload related
     900: "Unable to upload file(-s)"
 }

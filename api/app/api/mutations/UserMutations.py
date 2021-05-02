@@ -4,7 +4,6 @@ from graphql import GraphQLError
 
 from app.api.decorators.AuthDecorators import gql_jwt, gql_refresh_jwt_required, access_level_required
 from app.api.models.UserModel import UserModel
-from app.api.mutations.types.AccessLevelInput import AccessLevelInput
 from app.api.mutations.types.TokenData import TokenData
 from app.api.status_codes import STATUS_CODE
 from app.api.utils.AuthUtils import create_normal_user, create_user, DEFAULT_ADMIN_ACCESS_LEVEL

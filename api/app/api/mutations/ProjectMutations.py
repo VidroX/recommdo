@@ -11,12 +11,12 @@ from odmantic import ObjectId
 
 from app.api.decorators.AuthDecorators import access_level_required, gql_full_jwt_required
 from app.api.models.ProjectModel import ProjectModel
-from app.api.models.RecommendationModel import RecommendationModel
 from app.api.models.UserModel import UserModel
 from app.api.mutations.types.ProjectMetadataInput import ProjectMetadataInput
+from app.api.mutations.types.UserInput import UserInput
 from app.api.status_codes import STATUS_CODE
 from app.api.utils.AuthUtils import DEFAULT_USER_PLUS_ACCESS_LEVEL
-from app.celery.celery_worker import import_purchases, analyze_purchases_async
+from app.celery.celery_worker import analyze_purchases, import_and_analyze_purchases
 from app.database.database import db
 from app.database.models.FileLocation import FileLocation
 from app.database.models.Metadata import Metadata
@@ -61,6 +61,11 @@ class CreateProject(graphene.Mutation):
         upload_path = Path(str(Path().absolute()) + UPLOAD_FILE_PATH + project_folder + '/')
         upload_path.mkdir(parents=True, exist_ok=True)
 
+        project_template = Project(
+            name=str(project_name),
+            files=project_files
+        )
+
         dataset = []
         for file in files:
             new_file_path = Path(str(upload_path) + '/' + file.filename)
@@ -102,22 +107,31 @@ class CreateProject(graphene.Mutation):
                             if project_metadata['meta_name_header'] is None:
                                 metadata_exists = await db.engine.find_one(
                                     Metadata,
-                                    Metadata.meta_id == value[0]
+                                    (
+                                        (Metadata.project == project_template.id) &
+                                        (Metadata.meta_id == value[0])
+                                    )
                                 )
                             else:
                                 metadata_exists = await db.engine.find_one(
                                     Metadata,
-                                    (Metadata.meta_id == value[0]) & (Metadata.name == value[1])
+                                    (
+                                        (Metadata.project == project_template.id) &
+                                        (Metadata.meta_id == value[0]) &
+                                        (Metadata.name == value[1])
+                                    )
                                 )
                             if metadata_exists is None:
                                 if project_metadata['meta_name_header'] is None:
                                     metadata = Metadata(
-                                        meta_id=value[0]
+                                        meta_id=value[0],
+                                        project=project_template
                                     )
                                 else:
                                     metadata = Metadata(
                                         meta_id=value[0],
-                                        name=value[1]
+                                        name=value[1],
+                                        project=project_template
                                     )
                                 await db.engine.save(metadata)
                     elif file.filename == project_metadata['subscriptions_file_name']:
@@ -139,10 +153,7 @@ class CreateProject(graphene.Mutation):
 
                         dataset = [[unq_values.tolist(), cnt.tolist()], purchases_with_dates.tolist()]
 
-        project_template = Project(
-            name=str(project_name),
-            files=project_files
-        )
+        project_template.files = project_files
 
         if not token_claims['access_level']['is_staff']:
             current_user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
@@ -150,11 +161,13 @@ class CreateProject(graphene.Mutation):
                 project_template.allowed_users = [current_user.id]
 
         if dataset is not None and len(dataset) > 0:
-            import_purchases.apply_async(args=[
+            import_and_analyze_purchases.apply_async(args=[
                 dumps(project_template.doc()),
                 dataset,
+                project_metadata,
+                True,
                 True
-            ])
+            ], max_retries=3, retry=True)
 
         created_project = await db.engine.save(project_template)
         new_project = ProjectModel(
@@ -169,17 +182,17 @@ class CreateProject(graphene.Mutation):
         return CreateProject(project=new_project)
 
 
-class GetUserRecommendations(graphene.Mutation):
+class ReAnalyze(graphene.Mutation):
     class Arguments:
-        user_id = graphene.Int(required=True)
         project_id = graphene.String(required=True)
+        project_metadata = ProjectMetadataInput(required=True)
 
-    recommendations = graphene.List(RecommendationModel)
+    message = graphene.String()
 
     @staticmethod
     @gql_full_jwt_required
-    async def mutate(root, info, user_id=None, project_id=None, **kwargs):
-        if user_id is None or project_id is None:
+    async def mutate(root, info, project_id=None, project_metadata=None, **kwargs):
+        if project_id is None:
             raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
 
         if not ObjectId.is_valid(project_id):
@@ -203,11 +216,60 @@ class GetUserRecommendations(graphene.Mutation):
         if request_user_id not in project_allowed_users and not is_admin:
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
 
-        project_metadata_info = {
-            'subscriptions_user_id_header': 'user_id',
-            'subscriptions_meta_id_header': 'resource_id',
-            'meta_name_header': 'name'
-        }
-        await analyze_purchases_async(dumps(project.doc()), project_metadata_info)
+        project.analyzed = False
+        await db.engine.save(project)
+        await db.raw_engine['recommendations'].delete_many({'project': ObjectId(project_id)})
 
-        return GetUserRecommendations(recommendations=[])
+        analyze_purchases.apply_async(args=[
+            dumps(project.doc()),
+            project_metadata,
+            True
+        ], priority=9, max_retries=3, retry=True)
+
+        return ReAnalyze(message='Task Started')
+
+
+class UpdateProjectAllowedUsers(graphene.Mutation):
+    class Arguments:
+        project_id = graphene.String(required=True)
+        users = graphene.List(graphene.ID, required=True)
+
+    message = graphene.String()
+
+    @staticmethod
+    @gql_full_jwt_required
+    async def mutate(root, info, project_id=None, users=None, **kwargs):
+        if project_id is None or users is None:
+            raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
+
+        if not ObjectId.is_valid(project_id):
+            raise GraphQLError(STATUS_CODE[53], extensions={'code': 53})
+
+        project = await db.engine.find_one(Project, Project.id == ObjectId(project_id))
+
+        if project is None:
+            raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
+
+        token_claims = kwargs['jwt_claims']
+        request_user_id = token_claims['user_id'] if token_claims is not None else None
+
+        if request_user_id is None:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        is_admin = token_claims['access_level']['is_staff'] if token_claims is not None else False
+
+        project_allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+
+        if request_user_id not in project_allowed_users and not is_admin:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        requested_users = []
+        for user in users:
+            db_user = await db.engine.find_one(User, User.id == ObjectId(user))
+            if db_user is not None:
+                requested_users.append(db_user.id)
+
+        project.allowed_users = requested_users
+        await db.engine.save(project)
+
+        return UpdateProjectAllowedUsers(message='Users have been successfully assigned to the project.')

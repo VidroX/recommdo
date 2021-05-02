@@ -19,21 +19,27 @@ type AccessLevelModel {
 }
 
 type ApiMutation {
+    analyzeProject(projectId: String!, projectMetadata: ProjectMetadataInput!): ReAnalyze
     createProject(files: [Upload]!, projectMetadata: ProjectMetadataInput!, projectName: String!): CreateProject
     login(email: String!, password: String!): Login
     refresh: Refresh
     register(accessLevel: Int = 1, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
+    updateProjectAllowedUsers(projectId: String!, users: [ID]!): UpdateProjectAllowedUsers
 }
 
 type ApiQuery {
+    allMetadata(projectId: String!): [MetadataModel]
     "The ID of the object"
     node(id: ID!): Node
     project(projectId: String!): ProjectModel
     projectPurchases(orderBy: String, page: Int = 1, projectId: String!, search: Float): PurchasesPaginationModel
+    projectRecommendations(itemId: String! = "all", orderBy: String, page: Int = 1, projectId: String!, search: Float, stars: Int): RecommendationsPaginationModel
+    projectStatistics(itemId: Int, projectId: String!): ProjectStatisticsModel
     projects: [ProjectModel]
     user: UserModel
     userPurchases(projectId: String!, userId: Int!): [PurchaseModel]
-    users: [UserModel]
+    userRecommendations(projectId: String!, userId: Int!): [RecommendationModel]
+    users(skipAdmins: Boolean = false): [UserModel]
 }
 
 type CreateProject {
@@ -41,6 +47,7 @@ type CreateProject {
 }
 
 type FileLocationModel {
+    fileType: String!
     id: ID!
     location: String!
     name: String!
@@ -55,6 +62,13 @@ type MetadataModel {
     id: ID!
     metaId: Int!
     name: String
+    project: ProjectModel!
+}
+
+type ProjectInnerStatisticModel {
+    count: Int!
+    percentage: Float!
+    stars: Int!
 }
 
 type ProjectModel {
@@ -66,9 +80,15 @@ type ProjectModel {
     name: String!
 }
 
+type ProjectStatisticsModel {
+    metadata: MetadataModel
+    project: ProjectModel!
+    statistics: [ProjectInnerStatisticModel]!
+}
+
 type PurchaseModel {
     id: ID!
-    metadata: MetadataModel!
+    metadata: MetadataModel
     project: ProjectModel!
     userId: Int!
     weight: Int
@@ -78,6 +98,27 @@ type PurchasesPaginationModel {
     currentPage: Int
     pageAmount: Int
     purchases: [PurchaseModel]!
+    shownEntries: Int
+    totalEntries: Int
+}
+
+type ReAnalyze {
+    message: String
+}
+
+type RecommendationModel {
+    id: ID!
+    metadata: MetadataModel!
+    project: ProjectModel!
+    score: Float!
+    userId: Int!
+    userItemWeight: Int!
+}
+
+type RecommendationsPaginationModel {
+    currentPage: Int
+    pageAmount: Int
+    recommendations: [RecommendationModel]!
     shownEntries: Int
     totalEntries: Int
 }
@@ -94,6 +135,10 @@ type Register {
 type TokenData {
     accessToken: String
     refreshToken: String
+}
+
+type UpdateProjectAllowedUsers {
+    message: String
 }
 
 type UserModel {

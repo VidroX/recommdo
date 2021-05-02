@@ -14,9 +14,10 @@ from scipy import sparse
 from app import settings
 from app.api.status_codes import STATUS_CODE
 from app.celery.celery_app import celery_app
-from app.database.models.Metadata import Metadata
 from app.database.models.Project import Project
-from app.database.models.Purchase import Purchase, PurchaseHistory
+from app.database.models.Purchase import Purchase
+from app.database.models.Recommendation import Recommendation
+
 
 def filter_file(files, file_type="metadata"):
     def iterator_func(x):
@@ -26,8 +27,7 @@ def filter_file(files, file_type="metadata"):
     return filter(iterator_func, files)
 
 
-async def import_purchases_async(project, dataset, change_analysis_bool=False):
-    print('Import DataSet Task Started')
+def get_engine():
     client = AsyncIOMotorClient(
         host=settings.DATABASE_HOST,
         port=int(settings.DATABASE_PORT),
@@ -37,7 +37,19 @@ async def import_purchases_async(project, dataset, change_analysis_bool=False):
         minPoolSize=10,
         io_loop=asyncio.get_event_loop()
     )
-    engine = AIOEngine(motor_client=client, database=settings.DATABASE_NAME)
+
+    return AIOEngine(motor_client=client, database=settings.DATABASE_NAME)
+
+
+async def import_and_analyze_purchases_async(
+        project,
+        dataset,
+        project_metadata,
+        change_import_bool=True,
+        change_analysis_bool=True
+):
+    print('Import DataSet Task Started')
+    engine = get_engine()
 
     project_template = Project.parse_doc(loads(project))
 
@@ -52,18 +64,6 @@ async def import_purchases_async(project, dataset, change_analysis_bool=False):
             )
         )
 
-    detailed_purchases = []
-    for history in dataset[1]:
-        detailed_purchases.append(
-            PurchaseHistory(
-                user_id=history[0],
-                purchase_id=history[1],
-                project=project_template,
-                start_at=history[2],
-                end_at=history[3]
-            )
-        )
-
     if len(purchases) >= 8:
         split_dataset = np.array_split(np.array(purchases), 8)
     elif len(purchases) >= 2:
@@ -71,27 +71,21 @@ async def import_purchases_async(project, dataset, change_analysis_bool=False):
     else:
         split_dataset = np.array_split(np.array(purchases), 1)
 
-    if len(detailed_purchases) >= 8:
-        split_dataset_detailed = np.array_split(np.array(detailed_purchases), 8)
-    elif len(detailed_purchases) >= 2:
-        split_dataset_detailed = np.array_split(np.array(detailed_purchases), 2)
-    else:
-        split_dataset_detailed = np.array_split(np.array(detailed_purchases), 1)
-
     gather_list = []
     for data in split_dataset:
         gather_list.append(engine.save_all(data.tolist()))
     await asyncio.gather(*gather_list)
 
-    gather_list_detailed = []
-    for data in split_dataset_detailed:
-        gather_list_detailed.append(engine.save_all(data.tolist()))
-    await asyncio.gather(*gather_list_detailed)
-
     if change_analysis_bool:
+        project_template.analyzed = True
+    if change_import_bool:
         project_template.imported = True
+    if change_import_bool or change_analysis_bool:
         await engine.save(project_template)
+
     print('Import DataSet Task Ended')
+
+    await analyze_purchases_async(project, project_metadata, engine, change_import_bool, change_analysis_bool)
 
 
 def set_normalized_weight(x) -> float:
@@ -109,53 +103,57 @@ def set_normalized_weight(x) -> float:
     return normalized_weight
 
 
-def get_category_id_by_user_id(df, pm, user_id) -> int:
-    return df.loc[df[pm['subscriptions_user_id_header']] == user_id][pm['subscriptions_user_id_header'] + '_code'].iloc[0]
+def get_user_item_weight(score: float) -> int:
+    user_item_weight = 1
+
+    if score >= 0.019:
+        user_item_weight = 2
+    if score >= 0.07:
+        user_item_weight = 3
+    if score >= 0.49:
+        user_item_weight = 4
+    if score >= 1:
+        user_item_weight = 5
+
+    return user_item_weight
 
 
-def convert_recommendations_to_real_ids(df, pm, recommendations):
-    real_recommendations = []
+async def get_all_recommendations(project, model, user_items, user_indexes, item_indexes, sparse_user_items, pm):
+    users_frame = user_items[pm['subscriptions_user_id_header'] + '_code'].drop_duplicates().reset_index()
+    users = users_frame[pm['subscriptions_user_id_header'] + '_code'].to_numpy()
 
-    field_name = pm['subscriptions_meta_id_header'] + '_code'
+    all_recommendations = []
+    for user in users:
+        recommendations = model.recommend(user, sparse_user_items, filter_already_liked_items=False, N=10)
+        for recommendation in recommendations:
+            real_user = user_indexes[user].item()
+            real_item = item_indexes[recommendation[0]].item()
+            score = recommendation[1]
+            all_recommendations.append(
+                Recommendation(
+                    user_id=real_user,
+                    project=project,
+                    item_id=real_item,
+                    score=score,
+                    user_item_weight=get_user_item_weight(score)
+                )
+            )
 
-    for recommendation in recommendations:
-        real_recommendations.append([
-            df.loc[
-                df[field_name] == recommendation[0]
-            ][pm['subscriptions_meta_id_header']].iloc[0],
-            recommendation[1]
-        ])
-
-    return real_recommendations
-
-
-def convert_sim_users_to_real_ids(df, pm, sim_users):
-    real_users = []
-
-    field_name = pm['subscriptions_user_id_header'] + '_code'
-
-    for user in sim_users:
-        real_users.append([
-            df.loc[
-                df[field_name] == user[0]
-            ][pm['subscriptions_user_id_header']].iloc[0],
-            user[1]
-        ])
-
-    return real_users
+    return all_recommendations
 
 
-async def analyze_purchases_async(project, project_metadata_info, change_analysis_bool=True):
-    client = AsyncIOMotorClient(
-        host=settings.DATABASE_HOST,
-        port=int(settings.DATABASE_PORT),
-        username=settings.DATABASE_USERNAME,
-        password=settings.DATABASE_PASSWORD,
-        maxPoolSize=10,
-        minPoolSize=10,
-        io_loop=asyncio.get_event_loop()
-    )
-    engine = AIOEngine(motor_client=client, database=settings.DATABASE_NAME)
+async def analyze_purchases_async(
+        project,
+        project_metadata_info,
+        db_engine=None,
+        change_import_bool=True,
+        change_analysis_bool=True
+):
+    print('DataSet Analysis Task Started')
+    if db_engine is None:
+        engine = get_engine()
+    else:
+        engine = db_engine
 
     project_template = Project.parse_doc(loads(project))
 
@@ -171,9 +169,6 @@ async def analyze_purchases_async(project, project_metadata_info, change_analysi
     elif subscriptions_file_info is None:
         raise GraphQLError(STATUS_CODE[206], extensions={'code': 206})
 
-    metadata_file = pd.read_csv(metadata_file_info.location).rename(
-        columns={'id': project_metadata_info['subscriptions_meta_id_header']}
-    )
     subscriptions_file = pd.read_csv(subscriptions_file_info.location)
 
     no_duplicates = subscriptions_file.pivot_table(
@@ -184,67 +179,89 @@ async def analyze_purchases_async(project, project_metadata_info, change_analysi
         aggfunc='size'
     ).reset_index().rename(columns={0: 'weight'})
 
-    no_duplicates_with_names = pd.merge(
-        no_duplicates[[
-            project_metadata_info['subscriptions_user_id_header'],
-            project_metadata_info['subscriptions_meta_id_header'],
-            'weight'
-        ]],
-        metadata_file[[
-            project_metadata_info['subscriptions_meta_id_header'],
-            project_metadata_info['meta_name_header']
-        ]],
-        how='inner',
-        on=project_metadata_info['subscriptions_meta_id_header']
-    )
-
-    no_duplicates_with_names['normalized_weight'] = \
-        no_duplicates_with_names['weight'].apply(lambda x: set_normalized_weight(x))
+    no_duplicates['normalized_weight'] = \
+        no_duplicates['weight'].apply(lambda x: set_normalized_weight(x))
 
     os.environ['MKL_NUM_THREADS'] = '1'
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
-    no_duplicates_with_names[project_metadata_info['subscriptions_user_id_header'] + '_code'] = no_duplicates_with_names[project_metadata_info['subscriptions_user_id_header']].astype("category").cat.codes
-    no_duplicates_with_names[project_metadata_info['subscriptions_meta_id_header'] + '_code'] = no_duplicates_with_names[project_metadata_info['subscriptions_meta_id_header']].astype("category").cat.codes
+    no_duplicates[project_metadata_info['subscriptions_user_id_header'] + '_code'], users_mapping_index =\
+        pd.Series(no_duplicates[project_metadata_info['subscriptions_user_id_header']]).factorize()
+    no_duplicates[project_metadata_info['subscriptions_meta_id_header'] + '_code'], items_mapping_index = \
+        pd.Series(no_duplicates[project_metadata_info['subscriptions_meta_id_header']]).factorize()
 
-    sparse_item_user = sparse.csr_matrix((
-        no_duplicates_with_names['weight'].astype(float),
+    sparse_item_user = sparse.csr_matrix(
         (
-            no_duplicates_with_names[project_metadata_info['subscriptions_meta_id_header'] + '_code'],
-            no_duplicates_with_names[project_metadata_info['subscriptions_user_id_header'] + '_code']
+            no_duplicates['normalized_weight'].astype(float),
+            (
+                no_duplicates[project_metadata_info['subscriptions_meta_id_header'] + '_code'],
+                no_duplicates[project_metadata_info['subscriptions_user_id_header'] + '_code'],
+            ),
         )
-    ))
-    sparse_user_item = sparse.csr_matrix((
-        no_duplicates_with_names['weight'].astype(float),
-        (
-            no_duplicates_with_names[project_metadata_info['subscriptions_user_id_header'] + '_code'],
-            no_duplicates_with_names[project_metadata_info['subscriptions_meta_id_header'] + '_code']
-        )
-    ))
+    )
+    sparse_user_item = sparse_item_user.T.tocsr()
 
-    model = implicit.als.AlternatingLeastSquares(factors=20, regularization=0.1, iterations=20)
+    model = implicit.als.AlternatingLeastSquares(
+        factors=140,
+        regularization=0.1,
+        iterations=40,
+        calculate_training_loss=False
+    )
 
     alpha_val = 40
     data_conf = (sparse_item_user * alpha_val).astype('double')
 
-    model.fit(data_conf)
+    model.fit(data_conf, show_progress=False)
 
-    user_id = get_category_id_by_user_id(no_duplicates_with_names, project_metadata_info, 111)
-    recommended = model.recommend(user_id, sparse_user_item, filter_already_liked_items=False)
-    sim_users = model.similar_users(user_id)
-    print(convert_sim_users_to_real_ids(no_duplicates_with_names, project_metadata_info, sim_users))
-    print(convert_recommendations_to_real_ids(no_duplicates_with_names, project_metadata_info, recommended))
+    recommendations = await get_all_recommendations(
+        project_template,
+        model,
+        no_duplicates,
+        users_mapping_index,
+        items_mapping_index,
+        sparse_user_item,
+        project_metadata_info
+    )
 
-    # if change_analysis_bool:
-    #     project_template.analyzed = True
-    #     await engine.save(project_template)
+    if len(recommendations) >= 8:
+        split_dataset = np.array_split(np.array(recommendations), 8)
+    elif len(recommendations) >= 2:
+        split_dataset = np.array_split(np.array(recommendations), 2)
+    else:
+        split_dataset = np.array_split(np.array(recommendations), 1)
+
+    gather_list = []
+    for data in split_dataset:
+        gather_list.append(engine.save_all(data.tolist()))
+    await asyncio.gather(*gather_list)
+
+    if change_analysis_bool:
+        project_template.analyzed = True
+    if change_import_bool:
+        project_template.imported = True
+    if change_import_bool or change_analysis_bool:
+        await engine.save(project_template)
+    print('DataSet Analysis Task Ended')
 
 
-@celery_app.task
-def import_purchases(project, dataset, change_analysis_bool=True):
-    asyncio.run(import_purchases_async(project, dataset, change_analysis_bool))
+@celery_app.task(acks_late=True, max_retries=3, retry=True)
+def import_and_analyze_purchases(
+        project,
+        dataset,
+        project_metadata,
+        change_import_bool=True,
+        change_analysis_bool=True
+):
+    asyncio.run(
+        import_and_analyze_purchases_async(
+            project,
+            dataset,
+            project_metadata,
+            change_import_bool,
+            change_analysis_bool
+        ))
 
 
-@celery_app.task
+@celery_app.task(acks_late=True, max_retries=3, task_reject_on_worker_lost=True, retry=True)
 def analyze_purchases(project, project_metadata_info, change_analysis_bool=True):
-    asyncio.run(analyze_purchases_async(project, project_metadata_info, change_analysis_bool))
+    asyncio.run(analyze_purchases_async(project, project_metadata_info, None, False, change_analysis_bool))

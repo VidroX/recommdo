@@ -19,6 +19,7 @@ async def preflight_setup():
         minPoolSize=10
     )
     engine = AIOEngine(motor_client=client, database=settings.DATABASE_NAME)
+    db.raw_engine = client[settings.DATABASE_NAME]
     db.engine = engine
     db.database = engine.database
     try:

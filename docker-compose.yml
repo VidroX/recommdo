@@ -33,12 +33,13 @@ services:
     env_file: .env
     volumes:
       - ./api/app/celery:/app/app/celery
+      - ./api/app/uploads:/app/app/uploads
     links:
       - redis
     depends_on:
       - api
       - redis
-    entrypoint: celery --app app.celery.celery_app worker -c 2 --loglevel=info
+    entrypoint: celery --app app.celery.celery_app worker -c 6 --loglevel=info
   redis:
     image: redis:latest
     ports:

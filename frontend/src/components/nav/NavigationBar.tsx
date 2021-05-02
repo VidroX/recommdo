@@ -5,8 +5,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { IoLogOutOutline } from 'react-icons/io5';
-import { RiMenu4Fill, RiCloseFill, RiSettings4Fill } from 'react-icons/ri';
-import { GrProjects } from 'react-icons/gr';
+import { RiMenu4Fill, RiCloseFill } from 'react-icons/ri';
+import { AiOutlineFundProjectionScreen } from 'react-icons/ai';
 
 const NavigationBar = () => {
 	const { t } = useTranslation('common');
@@ -70,24 +70,11 @@ const NavigationBar = () => {
 								href="/"
 								className={(route === '/' ? selectedLinkStyles : linkStyles) + ' ' + shownNavStyles}
 								locale={currentLocale}>
-								<GrProjects size={20} className="mr-2" /> {t('projectsTitle')}
+								<AiOutlineFundProjectionScreen size={20} className="mr-2" /> {t('projectsTitle')}
 							</Link>
 						</li>
 					</ul>
 					<ul className="flex flex-col md:flex-row">
-						{/*<li className="flex mt-1 md:mt-0 md:mr-2">
-							<Link
-								href="/admin/settings/"
-								className={
-									(route === '/admin/settings' ? selectedLinkStyles : linkStyles) +
-									' ' +
-									shownNavStyles
-								}
-								locale={currentLocale}>
-								<RiSettings4Fill size={20} className="mr-1" />
-								<span className="md:hidden"> {t('settingsTitle')}</span>
-							</Link>
-						</li>*/}
 						<li className="flex mt-1 md:mt-0">
 							<Link
 								href="/admin/logout/"

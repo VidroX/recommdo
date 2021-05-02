@@ -18,5 +18,7 @@
   "user": "User",
   "userInfo": "User Info",
   "projectSettings": "Project Settings",
-  "notDefined": "Not defined"
+  "notDefined": "Not defined",
+  "requiredDataNotFound": "Required data not found",
+  "save": "Save"
 }
