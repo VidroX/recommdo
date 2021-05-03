@@ -25,14 +25,25 @@ APP_VERSION = os.getenv("APP_VERSION")
 # CORS
 CORS_ORIGINS = [
     "http://host.docker.internal",
+    "http://host.docker.internal:8000",
     "http://host.docker.internal:8080",
     "http://host.docker.internal:3000",
     "http://localhost",
+    "http://localhost:8000",
     "http://localhost:8080",
     "http://localhost:3000",
     "http://127.0.0.1",
+    "http://127.0.0.1:8000",
     "http://127.0.0.1:8080",
     "http://127.0.0.1:3000",
+    "http://server.vidrox.me",
+    "http://server.vidrox.me:8000",
+    "http://server.vidrox.me:8080",
+    "http://server.vidrox.me:3000",
+    "https://server.vidrox.me",
+    "https://server.vidrox.me:8000",
+    "https://server.vidrox.me:8080",
+    "https://server.vidrox.me:3000"
 ]
 
 # Uploaded files

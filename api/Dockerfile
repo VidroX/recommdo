@@ -1,0 +1,11 @@
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8-alpine3.10
+
+COPY ./requirements.txt /app
+COPY ./.env /app
+
+RUN apk add build-base libffi-dev openblas-dev
+RUN pip install -r requirements.txt
+
+COPY ./app /app/app
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--loop", "asyncio"]

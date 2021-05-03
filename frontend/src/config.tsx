@@ -1,6 +1,6 @@
 export const config = {
 	general: {
-		isDev: true,
+		isDev: false,
 		appName: 'Recommdo',
 	},
 	i18n: {
@@ -8,7 +8,7 @@ export const config = {
 		locales: ['en', 'uk'],
 	},
 	api: {
-		url: 'http://127.0.0.1:8080/gql',
+		url: 'https://server.vidrox.me/gql',
 		authTokenLocation: 'ut',
 		refreshTokenLocation: 'rt',
 	},
