@@ -1,7 +1,8 @@
 import { useQuery } from '@apollo/client';
-import { CURRENT_USER } from '../apollo/queries/user';
+import { GET_USER_QUERY } from '../apollo/queries/user';
 
 export interface UserAccessLevel {
+	id: string;
 	description: string;
 	isStaff: boolean;
 	level: number;
@@ -22,7 +23,7 @@ interface UserQuery {
 }
 
 const useUser = (): User | null => {
-	const { data } = useQuery<UserQuery>(CURRENT_USER);
+	const { data } = useQuery<UserQuery>(GET_USER_QUERY);
 
 	return data?.user ?? null;
 };

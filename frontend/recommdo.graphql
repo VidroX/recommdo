@@ -13,6 +13,7 @@ interface Node {
 
 type AccessLevelModel {
     description: String!
+    id: ID!
     isStaff: Boolean!
     level: Int!
     name: String!
@@ -25,11 +26,13 @@ type ApiMutation {
     login(email: String!, password: String!): Login
     refresh: Refresh
     register(accessLevel: Int = 1, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
+    removeUser(userId: ID!): RemoveUser
     updateProjectAllowedUsers(projectId: String!, users: [ID]!): UpdateProjectAllowedUsers
     updateProjectName(name: String!, projectId: String!): UpdateProjectName
 }
 
 type ApiQuery {
+    accessLevels: [AccessLevelModel]
     allMetadata(projectId: String!): [MetadataModel]
     "The ID of the object"
     node(id: ID!): Node
@@ -38,7 +41,7 @@ type ApiQuery {
     projectRecommendations(itemId: String! = "all", orderBy: String, page: Int = 1, projectId: String!, search: Float, stars: Int): RecommendationsPaginationModel
     projectStatistics(itemId: Int, projectId: String!): ProjectStatisticsModel
     projects: [ProjectModel]
-    user: UserModel
+    user(userId: ID): UserModel
     userPurchases(projectId: String!, userId: Int!): [PurchaseModel]
     userRecommendations(projectId: String!, userId: Int!): [RecommendationModel]
     users(skipAdmins: Boolean = false): [UserModel]
@@ -139,6 +142,10 @@ type Register {
     user: UserModel
 }
 
+type RemoveUser {
+    message: String
+}
+
 type TokenData {
     accessToken: String
     refreshToken: String
@@ -154,6 +161,7 @@ type UpdateProjectName {
 
 type UserModel {
     accessLevel: AccessLevelModel!
+    deleted: Boolean!
     email: String!
     firstName: String!
     id: ID!

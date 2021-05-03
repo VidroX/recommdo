@@ -12,6 +12,7 @@ class User(Model, ABC):
     middle_name: Optional[str] = ""
     email: str
     password: str
+    deleted: bool = False
     access_level: AccessLevel = Reference()
 
     class Config:

@@ -7,12 +7,14 @@ import { UrlObject } from 'url';
 interface CustomLinkProps {
 	href?: string | UrlObject;
 	className?: string;
+	disabled?: boolean;
 	locale?: string;
 	title?: string;
 	style?: CSSProperties;
 }
 
 const Link: React.FC<CustomLinkProps> = ({
+	disabled = false,
 	locale = null,
 	href = '#',
 	className = '',
@@ -25,6 +27,14 @@ const Link: React.FC<CustomLinkProps> = ({
 	const [linkLocale] = useState(
 		locale != null ? locale : routerLocale == null ? defaultLocale : routerLocale
 	);
+
+	if (disabled) {
+		return (
+			<span style={style} className={className} title={title}>
+				{children}
+			</span>
+		);
+	}
 
 	return (
 		<NavLink href={href} locale={linkLocale}>

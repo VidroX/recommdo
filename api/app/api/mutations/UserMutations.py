@@ -1,8 +1,10 @@
 import graphene
+from bson import ObjectId
 from email_validator import validate_email, EmailNotValidError
 from graphql import GraphQLError
 
-from app.api.decorators.AuthDecorators import gql_jwt, gql_refresh_jwt_required, access_level_required
+from app.api.decorators.AuthDecorators import gql_jwt, gql_refresh_jwt_required, access_level_required, \
+    gql_full_jwt_required
 from app.api.models.UserModel import UserModel
 from app.api.mutations.types.TokenData import TokenData
 from app.api.status_codes import STATUS_CODE
@@ -28,7 +30,7 @@ class Login(graphene.Mutation):
         if email is None or password is None:
             raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
 
-        user = await db.engine.find_one(User, User.email == email)
+        user = await db.engine.find_one(User, (User.email == email) & (User.deleted == False))
 
         if user is None:
             raise GraphQLError(STATUS_CODE[100], extensions={'code': 100})
@@ -88,6 +90,9 @@ class Register(graphene.Mutation):
         if len(password) < 6:
             raise GraphQLError(STATUS_CODE[102], extensions={'code': 102})
 
+        if access_level is None or access_level < 1 or access_level > 3:
+            raise GraphQLError(STATUS_CODE[109], extensions={'code': 109})
+
         jwt = kwargs['jwt']
         user_subject = kwargs['jwt_subject']
         token_claims = kwargs['jwt_claims']
@@ -134,6 +139,43 @@ class Register(graphene.Mutation):
         token_data.refresh_token = jwt.create_refresh_token(subject=str(created_user.id), user_claims=claims)
 
         return Register(user=created_user, tokens=token_data)
+
+
+class RemoveUser(graphene.Mutation):
+    class Arguments:
+        user_id = graphene.ID(required=True)
+
+    message = graphene.String()
+
+    @staticmethod
+    @access_level_required(DEFAULT_ADMIN_ACCESS_LEVEL.level, True)
+    async def mutate(root, info, user_id=None, **kwargs):
+        if user_id is None:
+            raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
+
+        if not ObjectId.is_valid(user_id):
+            raise GraphQLError(STATUS_CODE[53], extensions={'code': 53})
+
+        claims = kwargs['jwt_claims']
+        is_admin = claims['access_level']['is_staff'] if claims is not None else False
+
+        current_user = await db.engine.find_one(User, (User.id == ObjectId(claims['user_id'])))
+
+        if not is_admin or current_user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
+        user = await db.engine.find_one(User, (User.id == ObjectId(user_id)) & (User.deleted == False))
+
+        if user is None:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
+        if user.id == current_user.id:
+            raise GraphQLError(STATUS_CODE[108], extensions={'code': 108})
+
+        user.deleted = True
+        await db.engine.save(user)
+
+        return RemoveUser(message='User has been successfully removed.')
 
 
 class Refresh(graphene.Mutation):

@@ -7,6 +7,7 @@ import { UrlObject } from 'url';
 interface ButtonProps {
 	onClick?: (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void;
 	loading?: boolean;
+	fluid?: boolean;
 	href?: string | UrlObject;
 	dense?: boolean;
 	extraClasses?: string;
@@ -43,6 +44,7 @@ const outlinedClasses = [
 
 const Button: React.FC<ButtonProps> = ({
 	href = null,
+	fluid = false,
 	buttonType = 'primary',
 	locale = undefined,
 	loading = false,
@@ -73,11 +75,19 @@ const Button: React.FC<ButtonProps> = ({
 					'flex flex-row items-center font-semibold' +
 					(loading
 						? dense
-							? ' my-1 ml-2 mr-2'
-							: ' my-1.5 ml-3 mr-5'
+							? fluid
+								? ' my-1 ml-2 mr-2'
+								: ' my-1 ml-2 mr-2 flex flex-1'
+							: fluid
+							? ' my-1.5 ml-3 mr-5'
+							: ' my-1.5 ml-3 mr-5 flex flex-1'
 						: dense
-						? ' my-1 mx-4'
-						: ' my-1.5 mx-8')
+						? fluid
+							? ' my-1 mx-4'
+							: ' my-1 mx-4 flex flex-1'
+						: fluid
+						? ' my-1.5 mx-8'
+						: ' my-1.5 mx-8 flex flex-1')
 				}>
 				{loading && <CgSpinner className="animate-spin w-5 h-5 mr-3" />}
 				{children}
@@ -92,7 +102,8 @@ const Button: React.FC<ButtonProps> = ({
 					title={title}
 					className={
 						classes +
-						(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
+						((fluid ? ' flex flex-1 w-full items-center justify-center' : ' inline-block') +
+							(extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
 						(rounded != null && rounded ? ' rounded' : '')
 					}>
 					{renderButtonContents()}
@@ -107,7 +118,8 @@ const Button: React.FC<ButtonProps> = ({
 				href={href}
 				className={
 					classes +
-					(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
+					((fluid ? ' flex flex-1 w-full items-center justify-center' : ' inline-block') +
+						(extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
 					(rounded != null && rounded ? ' rounded' : '')
 				}>
 				{renderButtonContents()}
@@ -122,7 +134,8 @@ const Button: React.FC<ButtonProps> = ({
 			type={submitButton ? 'submit' : 'button'}
 			className={
 				classes +
-				(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
+				((fluid ? ' flex flex-1 w-full items-center justify-center' : ' inline-block') +
+					(extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
 				(rounded != null && rounded ? ' rounded' : '')
 			}
 			onClick={onClick}>

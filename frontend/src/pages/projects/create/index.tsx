@@ -18,6 +18,7 @@ import { useMutation } from '@apollo/client';
 import { CREATE_PROJECT_MUTATION } from '../../../apollo/mutations/projects';
 import { useRouter } from 'next/router';
 import useUser from '../../../hooks/useUser';
+import Link from '../../../components/buttons/Link';
 
 interface CreateProjectFormValues {
 	projectName: string;
@@ -726,8 +727,20 @@ const CreateProject = () => {
 
 	return (
 		<Layout pageName={t('newProject')}>
-			<div className="flex flex-1 justify-between items-center">
-				<h1 className="text-primary font-bold">{t('newProject')}</h1>
+			<div className="flex flex-1 flex-col md:flex-row md:justify-between">
+				<div className="flex flex-row select-none w-full md:max-w-50-percent mb-2 md:mb-0">
+					<Link
+						className="text-black font-light hover:text-primary overflow-ellipsis overflow-hidden whitespace-nowrap break-all"
+						href="/">
+						{commonTranslate('projectsTitle')}
+					</Link>
+					<div className="flex flex-1 w-0 md:w-full">
+						<span className="text-black font-light mx-2 cursor-default">/</span>
+						<h1 className="font-bold text-primary cursor-default overflow-ellipsis overflow-hidden whitespace-nowrap break-all w-full md:w-72">
+							{t('addNewProject')}
+						</h1>
+					</div>
+				</div>
 			</div>
 			{user?.accessLevel != null && user.accessLevel?.level <= 1 && renderError()}
 			{user?.accessLevel != null && user.accessLevel?.level > 1 && renderForm()}

@@ -1,0 +1,20 @@
+{
+  "title": "Users",
+  "usersList": "Users List",
+  "addNewUser": "Create new User",
+  "firstName": "First Name",
+  "lastName": "Last Name",
+  "middleName": "Middle Name",
+  "isAdmin": "Is administrator?",
+  "userLevel": "Access Level",
+  "user": "User",
+  "actions": "Actions",
+  "removeUser": "Remove User",
+  "accessLevelDesc": "Access Level Description",
+  "accessLevelInfo": "Access Level Information",
+  "userInfo": "User Information",
+  "deleteConfirmation": "Are you sure you want to delete this User?",
+  "userId": "User ID",
+  "userEmail": "E-Mail",
+  "userEmailExits": "User with such E-Mail already exists"
+}

@@ -10,8 +10,8 @@ import {
 	GET_PROJECT_METADATA_QUERY,
 	GET_PROJECT_QUERY,
 	GET_PROJECT_STATISTICS_QUERY,
-} from '../../../apollo/mutations/projects';
-import { useEffect, useMemo, useState } from 'react';
+} from '../../../apollo/queries/projects';
+import { useMemo, useState } from 'react';
 import Button from '../../../components/buttons/Button';
 import { RiSettings4Fill } from 'react-icons/ri';
 import { FaShoppingBasket } from 'react-icons/fa';
@@ -297,7 +297,7 @@ const Project = () => {
 										)}
 									</div>
 								</div>
-								<div className="flex flex-1 items-center">
+								<div className="flex flex-1 items-center z-50">
 									{!error && !metadataError && (loading || metadataLoading) ? (
 										<div
 											className="animate-pulse flex flex-1 justify-center items-center"

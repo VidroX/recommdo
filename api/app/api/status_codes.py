@@ -20,7 +20,9 @@ STATUS_CODE = {
     104: "Unable to register with given information",
     105: "You do not have enough permissions to do that!",
     106: "Cannot find specified Access Level",
-    107: "Requested user not found",
+    107: "Requested user not found or deleted",
+    108: "You cannot remove yourself from the system",
+    109: "Given Access Level is incorrect",
     # Project related
     200: "Given Project Name already exists",
     201: "Requested project not found",

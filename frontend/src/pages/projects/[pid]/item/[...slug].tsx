@@ -9,7 +9,7 @@ import { useQuery } from '@apollo/client';
 import {
 	GET_PROJECT_QUERY,
 	GET_PROJECT_RECOMMENDATIONS_QUERY,
-} from '../../../../apollo/mutations/projects';
+} from '../../../../apollo/queries/projects';
 import { Metadata, ProjectObject, Sort } from '../purchases';
 import Link from '../../../../components/buttons/Link';
 import { useCallback, useEffect, useState } from 'react';

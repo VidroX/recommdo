@@ -11,9 +11,7 @@ from odmantic import ObjectId
 
 from app.api.decorators.AuthDecorators import access_level_required, gql_full_jwt_required
 from app.api.models.ProjectModel import ProjectModel
-from app.api.models.UserModel import UserModel
 from app.api.mutations.types.ProjectMetadataInput import ProjectMetadataInput
-from app.api.mutations.types.UserInput import UserInput
 from app.api.status_codes import STATUS_CODE
 from app.api.utils.AuthUtils import DEFAULT_USER_PLUS_ACCESS_LEVEL
 from app.celery.celery_worker import analyze_purchases, import_and_analyze_purchases
@@ -54,6 +52,11 @@ class CreateProject(graphene.Mutation):
             raise GraphQLError(STATUS_CODE[200], extensions={'code': 200})
 
         token_claims = kwargs['jwt_claims']
+
+        user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
 
         project_files = []
         project_folder = project_name.lower().replace(' ', '_')
@@ -157,7 +160,7 @@ class CreateProject(graphene.Mutation):
 
         if not token_claims['access_level']['is_staff']:
             current_user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
-            if current_user is not None:
+            if current_user is not None and not current_user.deleted:
                 project_template.allowed_users = [current_user.id]
 
         if dataset is not None and len(dataset) > 0:
@@ -170,6 +173,14 @@ class CreateProject(graphene.Mutation):
             ], max_retries=3, retry=True)
 
         created_project = await db.engine.save(project_template)
+
+        allowed_users = await db.engine.find(User, User.id.in_(created_project.allowed_users))
+        real_allowed_users = []
+
+        for db_user in allowed_users:
+            if db_user is not None and not db_user.deleted:
+                real_allowed_users.append(db_user)
+
         new_project = ProjectModel(
             id=created_project.id,
             name=created_project.name,
@@ -177,7 +188,7 @@ class CreateProject(graphene.Mutation):
             imported=False,
             deleted=created_project.deleted,
             files=created_project.files,
-            allowed_users=await db.engine.find(User, User.id.in_(created_project.allowed_users))
+            allowed_users=real_allowed_users
         )
 
         return CreateProject(project=new_project)
@@ -205,6 +216,12 @@ class ReAnalyze(graphene.Mutation):
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
         token_claims = kwargs['jwt_claims']
+
+        user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         request_user_id = token_claims['user_id'] if token_claims is not None else None
 
         if request_user_id is None:
@@ -212,9 +229,14 @@ class ReAnalyze(graphene.Mutation):
 
         is_admin = token_claims['access_level']['is_staff'] if token_claims is not None else False
 
-        project_allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+        allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+        real_allowed_users = []
 
-        if request_user_id not in project_allowed_users and not is_admin:
+        for db_user in allowed_users:
+            if db_user is not None and not db_user.deleted:
+                real_allowed_users.append(db_user)
+
+        if request_user_id not in real_allowed_users and not is_admin:
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
 
         project.analyzed = False
@@ -252,6 +274,12 @@ class UpdateProjectAllowedUsers(graphene.Mutation):
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
         token_claims = kwargs['jwt_claims']
+
+        user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         request_user_id = token_claims['user_id'] if token_claims is not None else None
 
         if request_user_id is None:
@@ -265,7 +293,7 @@ class UpdateProjectAllowedUsers(graphene.Mutation):
         requested_users = []
         for user in users:
             db_user = await db.engine.find_one(User, User.id == ObjectId(user))
-            if db_user is not None:
+            if db_user is not None and not db_user.deleted:
                 requested_users.append(db_user.id)
 
         project.allowed_users = requested_users
@@ -295,6 +323,12 @@ class DeleteProject(graphene.Mutation):
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
         token_claims = kwargs['jwt_claims']
+
+        user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         request_user_id = token_claims['user_id'] if token_claims is not None else None
 
         if request_user_id is None:
@@ -332,6 +366,13 @@ class UpdateProjectName(graphene.Mutation):
         if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
+        token_claims = kwargs['jwt_claims']
+
+        user = await db.engine.find_one(User, User.id == ObjectId(token_claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         name_exists = await db.engine.find_one(
             Project,
             (Project.name == name) &
@@ -341,7 +382,6 @@ class UpdateProjectName(graphene.Mutation):
         if name_exists:
             raise GraphQLError(STATUS_CODE[200], extensions={'code': 200})
 
-        token_claims = kwargs['jwt_claims']
         request_user_id = token_claims['user_id'] if token_claims is not None else None
 
         if request_user_id is None:

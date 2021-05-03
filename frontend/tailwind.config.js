@@ -6,6 +6,11 @@ module.exports = {
 			screens: {
 				'xs': '320px',
 			},
+			flex: {
+				'2': '2 1 0%',
+				'3': '3 1 0%',
+				'4': '4 1 0%',
+			},
 			colors: {
 				primary: {
 					DEFAULT: '#02C2A8',

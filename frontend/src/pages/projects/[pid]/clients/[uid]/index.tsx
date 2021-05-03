@@ -12,7 +12,7 @@ import {
 	GET_PROJECT_QUERY,
 	GET_USER_PURCHASES_QUERY,
 	GET_USER_RECOMMENDATIONS_QUERY,
-} from '../../../../../apollo/mutations/projects';
+} from '../../../../../apollo/queries/projects';
 import DataTable from 'react-data-table-component';
 import { AiFillStar } from 'react-icons/ai';
 import { useCallback } from 'react';

@@ -6,7 +6,8 @@ from graphene import relay
 from graphql import GraphQLError
 from odmantic import ObjectId, query
 
-from app.api.decorators.AuthDecorators import gql_full_jwt_required
+from app.api.decorators.AuthDecorators import gql_full_jwt_required, access_level_required
+from app.api.models.AccessLevelModel import AccessLevelModel
 from app.api.models.FileLocationModel import FileLocationModel
 from app.api.models.MetadataModel import MetadataModel
 from app.api.models.ProjectModel import ProjectModel
@@ -18,8 +19,9 @@ from app.api.models.RecommendationsPaginationModel import RecommendationsPaginat
 from app.api.models.UserModel import UserModel
 from app.api.mutations.ProjectMutations import CreateProject, ReAnalyze, UpdateProjectAllowedUsers, DeleteProject, \
     UpdateProjectName
-from app.api.mutations.UserMutations import Login, Register, Refresh
+from app.api.mutations.UserMutations import Login, Register, Refresh, RemoveUser
 from app.api.status_codes import STATUS_CODE
+from app.api.utils.AuthUtils import DEFAULT_ADMIN_ACCESS_LEVEL
 from app.database.database import db
 from app.database.models.AccessLevel import AccessLevel
 from app.database.models.Metadata import Metadata
@@ -52,7 +54,7 @@ async def query_with_arguments(model, query_params=None, claims=None, **kwargs):
 class ApiQuery(graphene.ObjectType):
     node = relay.Node.Field()
     users = graphene.List(UserModel, skip_admins=graphene.Boolean(required=False, default_value=False))
-    user = graphene.Field(UserModel)
+    user = graphene.Field(UserModel, user_id=graphene.ID(required=False, default_value=None))
     user_recommendations = graphene.List(
         RecommendationModel,
         project_id=graphene.String(required=True),
@@ -87,6 +89,7 @@ class ApiQuery(graphene.ObjectType):
         item_id=graphene.Int(required=False, default_value=None),
     )
     all_metadata = graphene.List(MetadataModel, project_id=graphene.String(required=True))
+    access_levels = graphene.List(AccessLevelModel)
 
     @staticmethod
     @gql_full_jwt_required
@@ -100,20 +103,38 @@ class ApiQuery(graphene.ObjectType):
 
             all_users = await db.engine.find(User, User.id != ObjectId(claims['user_id']))
             for user in all_users:
-                if not user.access_level.is_staff:
+                if not user.access_level.is_staff and not user.deleted:
                     users.append(user)
 
             return users
 
-        return await db.engine.find(User, User.id != ObjectId(claims['user_id'])) if is_admin else \
-            await db.engine.find(User, User.id == ObjectId(claims['user_id']))
+        return await db.engine.find(User, ((User.id != ObjectId(claims['user_id'])) & (User.deleted == False))) if is_admin \
+            else await db.engine.find(User, ((User.id == ObjectId(claims['user_id'])) & (User.deleted == False)))
 
     @staticmethod
     @gql_full_jwt_required
     async def resolve_user(self, info, **kwargs):
         claims = kwargs['jwt_claims']
+        is_admin = claims['access_level']['is_staff'] if claims is not None else False
+        requested_user_id = kwargs.get('user_id', None)
 
-        return await query_with_arguments(User, User.id == ObjectId(claims['user_id']), claims, find_first=True)
+        if requested_user_id is not None and not ObjectId.is_valid(requested_user_id):
+            raise GraphQLError(STATUS_CODE[53], extensions={'code': 53})
+
+        if requested_user_id is not None and (is_admin or claims['user_id'] == requested_user_id):
+            requested_user = await db.engine.find_one(
+                User,
+                ((User.id == ObjectId(requested_user_id)) & (User.deleted == False))
+            )
+
+            if requested_user is None:
+                raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
+            return requested_user
+        elif requested_user_id is not None and not is_admin:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        return await db.engine.find_one(User, ((User.id == ObjectId(claims['user_id'])) & (User.deleted == False)))
 
     @staticmethod
     @gql_full_jwt_required
@@ -124,8 +145,20 @@ class ApiQuery(graphene.ObjectType):
         allowed_projects = []
         projects = await db.engine.find(Project)
 
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         for project in projects:
             if (ObjectId(claims['user_id']) in project.allowed_users) or is_admin and not project.deleted:
+                allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+                real_allowed_users = []
+
+                for db_user in allowed_users:
+                    if db_user is not None and not db_user.deleted:
+                        real_allowed_users.append(db_user)
+
                 new_project = ProjectModel(
                     id=project.id,
                     name=project.name,
@@ -133,7 +166,7 @@ class ApiQuery(graphene.ObjectType):
                     imported=project.imported,
                     deleted=project.deleted,
                     files=project.files,
-                    allowed_users=await db.engine.find(User, User.id.in_(project.allowed_users))
+                    allowed_users=real_allowed_users
                 )
                 allowed_projects.append(new_project)
 
@@ -146,6 +179,11 @@ class ApiQuery(graphene.ObjectType):
         is_admin = claims['access_level']['is_staff'] if claims is not None else False
         project_id = kwargs.get('project_id', None)
 
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         if project_id is None:
             raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
 
@@ -157,6 +195,13 @@ class ApiQuery(graphene.ObjectType):
         if ObjectId(claims['user_id']) not in project.allowed_users and not is_admin:
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
 
+        allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+        real_allowed_users = []
+
+        for db_user in allowed_users:
+            if db_user is not None and not db_user.deleted:
+                real_allowed_users.append(db_user)
+
         new_project = ProjectModel(
             id=project.id,
             name=project.name,
@@ -164,7 +209,7 @@ class ApiQuery(graphene.ObjectType):
             imported=project.imported,
             deleted=project.deleted,
             files=project.files,
-            allowed_users=await db.engine.find(User, User.id.in_(project.allowed_users))
+            allowed_users=real_allowed_users
         )
 
         return new_project
@@ -190,6 +235,11 @@ class ApiQuery(graphene.ObjectType):
 
         if not ObjectId.is_valid(project_id):
             raise GraphQLError(STATUS_CODE[53], extensions={'code': 53})
+
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
 
         project = await db.engine.find_one(Project, Project.id == ObjectId(project_id))
 
@@ -264,6 +314,13 @@ class ApiQuery(graphene.ObjectType):
             if project is None or project.deleted:
                 raise GraphQLError(STATUS_CODE[203], extensions={'code': 203})
 
+            allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+            real_allowed_users = []
+
+            for db_user in allowed_users:
+                if db_user is not None and not db_user.deleted:
+                    real_allowed_users.append(db_user)
+
             project_with_users = ProjectModel(
                 id=project.id,
                 name=project.name,
@@ -271,7 +328,7 @@ class ApiQuery(graphene.ObjectType):
                 imported=project.imported,
                 deleted=project.deleted,
                 files=project.files,
-                allowed_users=await db.engine.find(User, User.id.in_(project.allowed_users))
+                allowed_users=real_allowed_users
             )
             new_purchase = PurchaseModel(
                 id=purchase.id,
@@ -332,6 +389,11 @@ class ApiQuery(graphene.ObjectType):
 
         if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
+
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
 
         if item_id != 'all' and item is None:
             raise GraphQLError(STATUS_CODE[207], extensions={'code': 207})
@@ -557,6 +619,13 @@ class ApiQuery(graphene.ObjectType):
             if project is None or project.deleted:
                 raise GraphQLError(STATUS_CODE[203], extensions={'code': 203})
 
+            allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+            real_allowed_users = []
+
+            for db_user in allowed_users:
+                if db_user is not None and not db_user.deleted:
+                    real_allowed_users.append(db_user)
+
             project_with_users = ProjectModel(
                 id=project.id,
                 name=project.name,
@@ -564,7 +633,7 @@ class ApiQuery(graphene.ObjectType):
                 imported=project.imported,
                 deleted=project.deleted,
                 files=project.files,
-                allowed_users=await db.engine.find(User, User.id.in_(project.allowed_users))
+                allowed_users=real_allowed_users
             )
             new_recommendation = RecommendationModel(
                 id=recommendation.id,
@@ -610,6 +679,11 @@ class ApiQuery(graphene.ObjectType):
         if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         request_user_id = claims['user_id'] if claims is not None else None
 
         if request_user_id is None:
@@ -626,6 +700,13 @@ class ApiQuery(graphene.ObjectType):
         )
 
         for recommendation in db_recommendations:
+            allowed_users = await db.engine.find(User, User.id.in_(recommendation.project.allowed_users))
+            real_allowed_users = []
+
+            for db_user in allowed_users:
+                if db_user is not None and not db_user.deleted:
+                    real_allowed_users.append(db_user)
+
             project_with_allowed_users = ProjectModel(
                 id=recommendation.project.id,
                 name=recommendation.project.name,
@@ -633,7 +714,7 @@ class ApiQuery(graphene.ObjectType):
                 imported=recommendation.project.imported,
                 deleted=recommendation.project.deleted,
                 files=recommendation.project.files,
-                allowed_users=await db.engine.find(User, User.id.in_(recommendation.project.allowed_users))
+                allowed_users=real_allowed_users
             )
 
             recommendations.append(
@@ -674,6 +755,11 @@ class ApiQuery(graphene.ObjectType):
         if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         if not is_admin and not (ObjectId(claims['user_id']) in project.allowed_users):
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
 
@@ -690,6 +776,13 @@ class ApiQuery(graphene.ObjectType):
             if project is None or project.deleted:
                 raise GraphQLError(STATUS_CODE[203], extensions={'code': 203})
 
+            allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+            real_allowed_users = []
+
+            for db_user in allowed_users:
+                if db_user is not None and not db_user.deleted:
+                    real_allowed_users.append(db_user)
+
             project_with_users = ProjectModel(
                 id=project.id,
                 name=project.name,
@@ -697,7 +790,7 @@ class ApiQuery(graphene.ObjectType):
                 imported=project.imported,
                 deleted=project.deleted,
                 files=project.files,
-                allowed_users=await db.engine.find(User, User.id.in_(project.allowed_users))
+                allowed_users=real_allowed_users
             )
             new_purchase = PurchaseModel(
                 id=purchase.id,
@@ -746,11 +839,23 @@ class ApiQuery(graphene.ObjectType):
         if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         if item_id is not None and item is None:
             raise GraphQLError(STATUS_CODE[207], extensions={'code': 207})
 
         if not is_admin and not (ObjectId(claims['user_id']) in project.allowed_users):
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
+        real_allowed_users = []
+
+        for db_user in allowed_users:
+            if db_user is not None and not db_user.deleted:
+                real_allowed_users.append(db_user)
 
         project_with_users = ProjectModel(
             id=project.id,
@@ -759,7 +864,7 @@ class ApiQuery(graphene.ObjectType):
             analyzed=project.analyzed,
             deleted=project.deleted,
             files=project.files,
-            allowed_users=await db.engine.find(User, User.id.in_(project.allowed_users))
+            allowed_users=real_allowed_users
         )
 
         if item is not None:
@@ -827,12 +932,22 @@ class ApiQuery(graphene.ObjectType):
         if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
+        user = await db.engine.find_one(User, User.id == ObjectId(claims['user_id']))
+
+        if user is None or user.deleted:
+            raise GraphQLError(STATUS_CODE[107], extensions={'code': 107})
+
         if not is_admin and not (ObjectId(claims['user_id']) in project.allowed_users):
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
 
         all_metadata = await db.engine.find(Metadata, Metadata.project == ObjectId(project_id))
 
         return all_metadata
+
+    @staticmethod
+    @access_level_required(DEFAULT_ADMIN_ACCESS_LEVEL.level, True)
+    async def resolve_access_levels(self, info, **kwargs):
+        return await db.engine.find(AccessLevel)
 
 
 class ApiMutation(graphene.ObjectType):
@@ -844,6 +959,7 @@ class ApiMutation(graphene.ObjectType):
     update_project_allowed_users = UpdateProjectAllowedUsers.Field()
     delete_project = DeleteProject.Field()
     update_project_name = UpdateProjectName.Field()
+    remove_user = RemoveUser.Field()
 
 
 schema = graphene.Schema(query=ApiQuery, mutation=ApiMutation, types=[

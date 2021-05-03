@@ -8,11 +8,10 @@ import { config } from '../../../../config';
 import { useMutation, useQuery } from '@apollo/client';
 import {
 	DELETE_PROJECT_MUTATION,
-	GET_PROJECT_QUERY,
-	GET_USERS_LIST_QUERY,
 	UPDATE_PROJECT_ALLOWED_USERS_MUTATION,
 	UPDATE_PROJECT_NAME_MUTATION,
 } from '../../../../apollo/mutations/projects';
+import { GET_PROJECT_QUERY } from '../../../../apollo/queries/projects';
 import Link from '../../../../components/buttons/Link';
 import useUser, { User } from '../../../../hooks/useUser';
 import Spinner from '../../../../components/Spinner';
@@ -26,8 +25,9 @@ import { AiFillDelete } from 'react-icons/ai';
 import { FaSave } from 'react-icons/fa';
 import { MdCheck, MdClose } from 'react-icons/md';
 import Modal from '../../../../components/Modal';
+import { GET_USERS_LIST_QUERY } from '../../../../apollo/queries/user';
 
-interface UsersList {
+export interface UsersList {
 	users: User[];
 }
 
@@ -210,6 +210,8 @@ const ProjectSettings = () => {
 				.finally(() => {
 					setLocalLoading(false);
 				});
+		} else {
+			setLocalLoading(false);
 		}
 	};
 
@@ -228,7 +230,7 @@ const ProjectSettings = () => {
 			await apiDeleteProject({
 				variables: {
 					projectId: pid,
-				}
+				},
 			});
 
 			success = true;
@@ -243,11 +245,13 @@ const ProjectSettings = () => {
 				})
 				.catch((e) => {
 					config.general.isDev &&
-					console.error('[Project Settings]', 'Unable to redirect to main page', e);
+						console.error('[Project Settings]', 'Unable to redirect to main page', e);
 				})
 				.finally(() => {
 					setDeleteLoading(false);
 				});
+		} else {
+			setDeleteLoading(false);
 		}
 	};
 
@@ -380,13 +384,15 @@ const ProjectSettings = () => {
 							</div>
 						</div>
 						<div className="flex flex-row">
-							<Button
-								buttonType="danger"
-								title={commonTranslate('save')}
-								onClick={() => setModalShown(true)}>
-								<AiFillDelete size={18} className="md:mr-2" />{' '}
-								<span className="hidden md:flex">{t('deleteProject')}</span>
-							</Button>
+							{user?.accessLevel.isStaff && !error && !loading && (
+								<Button
+									buttonType="danger"
+									title={t('deleteProject')}
+									onClick={() => setModalShown(true)}>
+									<AiFillDelete size={18} className="md:mr-2" />{' '}
+									<span className="hidden md:flex">{t('deleteProject')}</span>
+								</Button>
+							)}
 						</div>
 					</div>
 				)}

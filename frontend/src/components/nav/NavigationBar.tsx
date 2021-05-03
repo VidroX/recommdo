@@ -7,11 +7,15 @@ import { useState } from 'react';
 import { IoLogOutOutline } from 'react-icons/io5';
 import { RiMenu4Fill, RiCloseFill } from 'react-icons/ri';
 import { AiOutlineFundProjectionScreen } from 'react-icons/ai';
+import { FaUserCircle, FaUsers } from 'react-icons/fa';
+import useUser from '../../hooks/useUser';
 
 const NavigationBar = () => {
 	const { t } = useTranslation('common');
 
 	const { route, locale, defaultLocale } = useRouter();
+
+	const user = useUser();
 
 	const [currentLocale] = useState(locale ?? defaultLocale);
 	const [navShown, setNavShown] = useState(false);
@@ -67,16 +71,48 @@ const NavigationBar = () => {
 					<ul className="flex flex-col md:flex-row md:flex-1">
 						<li className="flex mt-2 md:mt-0 md:mr-2">
 							<Link
+								title={t('projectsTitle')}
 								href="/"
 								className={(route === '/' ? selectedLinkStyles : linkStyles) + ' ' + shownNavStyles}
 								locale={currentLocale}>
 								<AiOutlineFundProjectionScreen size={20} className="mr-2" /> {t('projectsTitle')}
 							</Link>
 						</li>
+						{user?.accessLevel.isStaff && (
+							<li className="flex mt-2 md:mt-0 md:mr-2">
+								<Link
+									title={t('users')}
+									href="/users/"
+									className={
+										(route === '/users' ? selectedLinkStyles : linkStyles) + ' ' + shownNavStyles
+									}
+									locale={currentLocale}>
+									<FaUsers size={20} className="mr-2" /> {t('users')}
+								</Link>
+							</li>
+						)}
 					</ul>
 					<ul className="flex flex-col md:flex-row">
+						<li className="flex mr-0 md:mr-2 mt-1 md:mt-0">
+							<Link
+								title={t('user')}
+								href={{
+									pathname: '/users/[uid]/',
+									query: {
+										uid: user?.id
+									}
+								}}
+								className={
+									(route === '/users/[uid]' ? selectedLinkStyles : linkStyles) + ' ' + shownNavStyles
+								}
+								locale={currentLocale}>
+								<FaUserCircle size={20} className="mr-2 md:mr-0" />
+								<span className="flex md:hidden">{t('user')}</span>
+							</Link>
+						</li>
 						<li className="flex mt-1 md:mt-0">
 							<Link
+								title={t('logout')}
 								href="/admin/logout/"
 								className={linkStyles + ' ' + shownNavStyles}
 								locale={currentLocale}>

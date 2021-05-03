@@ -67,7 +67,7 @@ const StatisticsGraph = ({
 						animate
 						data={data}
 						colors={{ datum: 'data.color' }}
-						margin={{ top: 40, right: 100, bottom: 40, left: 100 }}
+						margin={{ top: 40, right: 160, bottom: 40, left: 160 }}
 						padAngle={0.7}
 						cornerRadius={3}
 						activeOuterRadiusOffset={8}

@@ -11,6 +11,7 @@
   "delete": "Delete",
   "ok": "OK",
   "yes": "Yes",
+  "no": "No",
   "cancel": "Cancel",
   "notEnoughPermissions": "You do not have enough permissions to view this page!",
   "loggingOut": "Logging out...",
@@ -22,5 +23,7 @@
   "notDefined": "Not defined",
   "requiredDataNotFound": "Required data not found",
   "save": "Save",
-  "confirmation": "Action Confirmation"
+  "confirmation": "Action Confirmation",
+  "users": "Users",
+  "smallField3": "Field value must be at least 3 characters long"
 }

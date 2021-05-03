@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import {
 	GET_PROJECT_PURCHASES_QUERY,
 	GET_PROJECT_QUERY,
-} from '../../../../apollo/mutations/projects';
+} from '../../../../apollo/queries/projects';
 import { useCallback, useEffect, useState } from 'react';
 import DataTable, { IDataTableColumn } from 'react-data-table-component';
 import Spinner from '../../../../components/Spinner';

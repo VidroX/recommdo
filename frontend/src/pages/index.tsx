@@ -7,7 +7,7 @@ import Layout from '../components/Layout';
 import { BsPlusSquare } from 'react-icons/bs';
 import Button from '../components/buttons/Button';
 import { useQuery } from '@apollo/client';
-import { GET_PROJECTS_QUERY } from '../apollo/mutations/projects';
+import { GET_PROJECTS_QUERY } from '../apollo/queries/projects';
 import Link from '../components/buttons/Link';
 import useUser from '../hooks/useUser';
 
@@ -153,7 +153,11 @@ const Home = () => {
 
 export const getStaticProps: GetStaticProps = async ({ locale }) => ({
 	props: {
-		...(await serverSideTranslations(locale ?? config.i18n.defaultLocale, ['common', 'projects'])),
+		...(await serverSideTranslations(locale ?? config.i18n.defaultLocale, [
+			'common',
+			'projects',
+			'users',
+		])),
 	},
 });
 
