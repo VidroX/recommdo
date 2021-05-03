@@ -24,6 +24,7 @@
     "babel-preset-rsuite": "^4.0.1",
     "date-fns": "^2.19.0",
     "formik": "^2.2.6",
+    "framer-motion": "^4.1.11",
     "graphql": "^15.5.0",
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.29.1",

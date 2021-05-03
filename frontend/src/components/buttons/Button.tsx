@@ -8,6 +8,7 @@ interface ButtonProps {
 	onClick?: (e: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => void;
 	loading?: boolean;
 	href?: string | UrlObject;
+	dense?: boolean;
 	extraClasses?: string;
 	outlined?: boolean;
 	submitButton?: boolean;
@@ -15,40 +16,34 @@ interface ButtonProps {
 	title?: string;
 	locale?: string;
 	rounded?: boolean;
+	buttonType?: 'primary' | 'danger';
 }
 
 const defaultClasses = [
-	'bg-primary',
-	'text-white',
 	'focus:outline-none',
+	'border-2',
 	'focus:ring',
 	'focus:ring-opacity-50',
-	'focus:ring-primary',
 	'duration-75',
 	'disabled:select-none',
 	'disabled:cursor-default',
-	'hover:bg-primary-dark',
-];
+].join(' ');
 
 const outlinedClasses = [
 	'bg-transparent',
 	'border-2',
 	'border-opacity-50',
-	'border-primary',
-	'text-primary',
 	'focus:outline-none',
 	'focus:ring-2',
 	'focus:ring-opacity-50',
-	'focus:ring-primary',
-	'hover:bg-primary',
-	'hover:text-white',
 	'duration-75',
 	'disabled:select-none',
 	'disabled:cursor-default',
-];
+].join(' ');
 
 const Button: React.FC<ButtonProps> = ({
 	href = null,
+	buttonType = 'primary',
 	locale = undefined,
 	loading = false,
 	onClick = (e) => {},
@@ -59,14 +54,30 @@ const Button: React.FC<ButtonProps> = ({
 	disabled = false,
 	title = undefined,
 	rounded = true,
+	dense = false,
 }) => {
-	const classes = outlined ? outlinedClasses : defaultClasses;
+	const classes = outlined
+		? outlinedClasses +
+		  (buttonType === 'primary'
+				? ' text-primary border-primary focus:ring-primary hover:bg-primary hover:text-white'
+				: ' text-danger border-danger focus:ring-danger hover:bg-danger hover:text-white')
+		: defaultClasses +
+		  (buttonType === 'primary'
+				? ' border-primary hover:border-primary-dark focus:ring-primary text-white bg-primary hover:bg-primary-dark'
+				: ' border-danger hover:border-danger-dark focus:ring-danger text-white bg-danger hover:bg-danger-dark');
 
 	const renderButtonContents = () => {
 		return (
 			<div
 				className={
-					'flex flex-row items-center font-semibold my-2' + (loading ? ' ml-3 mr-5' : ' mx-8')
+					'flex flex-row items-center font-semibold' +
+					(loading
+						? dense
+							? ' my-1 ml-2 mr-2'
+							: ' my-1.5 ml-3 mr-5'
+						: dense
+						? ' my-1 mx-4'
+						: ' my-1.5 mx-8')
 				}>
 				{loading && <CgSpinner className="animate-spin w-5 h-5 mr-3" />}
 				{children}
@@ -79,10 +90,11 @@ const Button: React.FC<ButtonProps> = ({
 			return (
 				<div
 					title={title}
-					className={classes
-						.join(' ')
-						.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))
-						.concat(rounded != null && rounded ? ' rounded' : '')}>
+					className={
+						classes +
+						(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
+						(rounded != null && rounded ? ' rounded' : '')
+					}>
 					{renderButtonContents()}
 				</div>
 			);
@@ -93,10 +105,11 @@ const Button: React.FC<ButtonProps> = ({
 				locale={locale}
 				title={title}
 				href={href}
-				className={classes
-					.join(' ')
-					.concat(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : ''))
-					.concat(rounded != null && rounded ? ' rounded' : '')}>
+				className={
+					classes +
+					(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
+					(rounded != null && rounded ? ' rounded' : '')
+				}>
 				{renderButtonContents()}
 			</Link>
 		);
@@ -107,10 +120,11 @@ const Button: React.FC<ButtonProps> = ({
 			title={title}
 			disabled={disabled}
 			type={submitButton ? 'submit' : 'button'}
-			className={classes
-				.join(' ')
-				.concat(extraClasses?.length > 0 ? ' ' + extraClasses : '')
-				.concat(rounded != null && rounded ? ' rounded' : '')}
+			className={
+				classes +
+				(' inline-block' + (extraClasses?.length > 0 ? ' ' + extraClasses : '')) +
+				(rounded != null && rounded ? ' rounded' : '')
+			}
 			onClick={onClick}>
 			{renderButtonContents()}
 		</button>

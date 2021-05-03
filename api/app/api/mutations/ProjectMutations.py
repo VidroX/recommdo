@@ -50,7 +50,7 @@ class CreateProject(graphene.Mutation):
 
         project = await db.engine.find_one(Project, Project.name == project_name)
 
-        if project is not None:
+        if project is not None and not project.deleted:
             raise GraphQLError(STATUS_CODE[200], extensions={'code': 200})
 
         token_claims = kwargs['jwt_claims']
@@ -175,6 +175,7 @@ class CreateProject(graphene.Mutation):
             name=created_project.name,
             analyzed=False,
             imported=False,
+            deleted=created_project.deleted,
             files=created_project.files,
             allowed_users=await db.engine.find(User, User.id.in_(created_project.allowed_users))
         )
@@ -200,7 +201,7 @@ class ReAnalyze(graphene.Mutation):
 
         project = await db.engine.find_one(Project, Project.id == ObjectId(project_id))
 
-        if project is None:
+        if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
         token_claims = kwargs['jwt_claims']
@@ -247,7 +248,7 @@ class UpdateProjectAllowedUsers(graphene.Mutation):
 
         project = await db.engine.find_one(Project, Project.id == ObjectId(project_id))
 
-        if project is None:
+        if project is None or project.deleted:
             raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
 
         token_claims = kwargs['jwt_claims']
@@ -258,9 +259,7 @@ class UpdateProjectAllowedUsers(graphene.Mutation):
 
         is_admin = token_claims['access_level']['is_staff'] if token_claims is not None else False
 
-        project_allowed_users = await db.engine.find(User, User.id.in_(project.allowed_users))
-
-        if request_user_id not in project_allowed_users and not is_admin:
+        if not is_admin:
             raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
 
         requested_users = []
@@ -273,3 +272,87 @@ class UpdateProjectAllowedUsers(graphene.Mutation):
         await db.engine.save(project)
 
         return UpdateProjectAllowedUsers(message='Users have been successfully assigned to the project.')
+
+
+class DeleteProject(graphene.Mutation):
+    class Arguments:
+        project_id = graphene.String(required=True)
+
+    message = graphene.String()
+
+    @staticmethod
+    @gql_full_jwt_required
+    async def mutate(root, info, project_id=None, **kwargs):
+        if project_id is None:
+            raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
+
+        if not ObjectId.is_valid(project_id):
+            raise GraphQLError(STATUS_CODE[53], extensions={'code': 53})
+
+        project = await db.engine.find_one(Project, Project.id == ObjectId(project_id))
+
+        if project is None or project.deleted:
+            raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
+
+        token_claims = kwargs['jwt_claims']
+        request_user_id = token_claims['user_id'] if token_claims is not None else None
+
+        if request_user_id is None:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        is_admin = token_claims['access_level']['is_staff'] if token_claims is not None else False
+
+        if not is_admin:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        project.deleted = True
+        await db.engine.save(project)
+
+        return DeleteProject(message='Project has been successfully deleted.')
+
+
+class UpdateProjectName(graphene.Mutation):
+    class Arguments:
+        project_id = graphene.String(required=True)
+        name = graphene.String(required=True)
+
+    message = graphene.String()
+
+    @staticmethod
+    @gql_full_jwt_required
+    async def mutate(root, info, project_id=None, name=None, **kwargs):
+        if project_id is None or name is None:
+            raise GraphQLError(STATUS_CODE[50], extensions={'code': 50})
+
+        if not ObjectId.is_valid(project_id):
+            raise GraphQLError(STATUS_CODE[53], extensions={'code': 53})
+
+        project = await db.engine.find_one(Project, Project.id == ObjectId(project_id))
+
+        if project is None or project.deleted:
+            raise GraphQLError(STATUS_CODE[201], extensions={'code': 201})
+
+        name_exists = await db.engine.find_one(
+            Project,
+            (Project.name == name) &
+            (Project.id != ObjectId(project_id))
+        ) is not None
+
+        if name_exists:
+            raise GraphQLError(STATUS_CODE[200], extensions={'code': 200})
+
+        token_claims = kwargs['jwt_claims']
+        request_user_id = token_claims['user_id'] if token_claims is not None else None
+
+        if request_user_id is None:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        is_admin = token_claims['access_level']['is_staff'] if token_claims is not None else False
+
+        if not is_admin:
+            raise GraphQLError(STATUS_CODE[51], extensions={'code': 51})
+
+        project.name = name
+        await db.engine.save(project)
+
+        return UpdateProjectName(message='Project has been successfully renamed.')

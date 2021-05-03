@@ -9,5 +9,6 @@ class ProjectModel(graphene.ObjectType):
     name = graphene.String(required=True)
     analyzed = graphene.Boolean(required=True, default_value=False)
     imported = graphene.Boolean(required=True, default_value=False)
+    deleted = graphene.Boolean(required=True, default_value=False)
     files = graphene.List(FileLocationModel, required=True)
     allowed_users = graphene.List(UserModel, required=True)

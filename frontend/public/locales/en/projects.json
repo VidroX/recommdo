@@ -57,5 +57,9 @@
   "userPurchases": "Client Purchases",
   "userRecommendations": "Client may like",
   "recommendationSignificance": "Recommendation significance",
-  "addUserToProject": "Add users to project"
+  "addUserToProject": "Add users to project",
+  "deleteProject": "Delete Project",
+  "projectUsers": "Project Allowed Users",
+  "smallProjectName": "Project name is too small. It needs to be at least 4 character long.",
+  "deleteConfirmation": "Are you sure you want to delete this project?"
 }

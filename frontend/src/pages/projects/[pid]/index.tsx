@@ -188,13 +188,13 @@ const Project = () => {
 										extraClasses="mr-2"
 										title={commonTranslate('settingsTitle')}
 										href={{ pathname: '/projects/[pid]/settings', query: { pid } }}>
-										<RiSettings4Fill size={20} />
+										<RiSettings4Fill size={18} className="mt-0 md:mt-0.5" />
 									</Button>
 								)}
 								<Button
 									title={t('allClientPurchases')}
 									href={{ pathname: '/projects/[pid]/purchases', query: { pid } }}>
-									<FaShoppingBasket size={20} className="mt-0.5 md:mt-0 md:mr-2" />{' '}
+									<FaShoppingBasket size={18} className="mt-0.5 md:mt-0 md:mr-2" />{' '}
 									<span className="hidden md:flex text-sm md:mt-0.5">
 										{t('allClientPurchases')}
 									</span>

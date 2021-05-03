@@ -21,10 +21,12 @@ type AccessLevelModel {
 type ApiMutation {
     analyzeProject(projectId: String!, projectMetadata: ProjectMetadataInput!): ReAnalyze
     createProject(files: [Upload]!, projectMetadata: ProjectMetadataInput!, projectName: String!): CreateProject
+    deleteProject(projectId: String!): DeleteProject
     login(email: String!, password: String!): Login
     refresh: Refresh
     register(accessLevel: Int = 1, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
     updateProjectAllowedUsers(projectId: String!, users: [ID]!): UpdateProjectAllowedUsers
+    updateProjectName(name: String!, projectId: String!): UpdateProjectName
 }
 
 type ApiQuery {
@@ -44,6 +46,10 @@ type ApiQuery {
 
 type CreateProject {
     project: ProjectModel
+}
+
+type DeleteProject {
+    message: String
 }
 
 type FileLocationModel {
@@ -74,6 +80,7 @@ type ProjectInnerStatisticModel {
 type ProjectModel {
     allowedUsers: [UserModel]!
     analyzed: Boolean!
+    deleted: Boolean!
     files: [FileLocationModel]!
     id: ID!
     imported: Boolean!
@@ -138,6 +145,10 @@ type TokenData {
 }
 
 type UpdateProjectAllowedUsers {
+    message: String
+}
+
+type UpdateProjectName {
     message: String
 }
 

@@ -24,6 +24,22 @@ export const UPDATE_PROJECT_ALLOWED_USERS_MUTATION = gql`
     }
 `;
 
+export const UPDATE_PROJECT_NAME_MUTATION = gql`
+    mutation ($projectId: String!, $name: String!) {
+        updateProjectName (projectId: $projectId, name: $name) {
+            message
+        }
+    }
+`;
+
+export const DELETE_PROJECT_MUTATION = gql`
+    mutation ($projectId: String!) {
+        deleteProject (projectId: $projectId) {
+            message
+        }
+    }
+`;
+
 export const GET_PROJECT_QUERY = gql`
     query($projectId: String!) {
         project(projectId: $projectId) {

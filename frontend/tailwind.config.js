@@ -3,11 +3,20 @@ module.exports = {
 	darkMode: 'media',
 	theme: {
 		extend: {
+			screens: {
+				'xs': '320px',
+			},
 			colors: {
 				primary: {
 					DEFAULT: '#02C2A8',
 					light: '#00e9ca',
 					dark: '#008d7a',
+				},
+				overlay: 'rgba(0,0,0,0.25)',
+				danger: {
+					DEFAULT: '#f55656',
+					light: '#fc7d7d',
+					dark: '#c82f2f',
 				},
 			},
 			scale: {

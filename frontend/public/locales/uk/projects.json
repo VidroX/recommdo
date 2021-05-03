@@ -57,5 +57,9 @@
   "userPurchases": "Покупки користувача",
   "userRecommendations": "Користувачеві може сподобатися",
   "recommendationSignificance": "Значущисть рекомендації",
-  "addUserToProject": "Додати користувачів до проекту"
+  "addUserToProject": "Додати користувачів до проекту",
+  "deleteProject": "Видалити проект",
+  "projectUsers": "Користувачі проекту",
+  "smallProjectName": "Дана назва проекту замала. Вона повинна бути принаймні 4 символи у довжину.",
+  "deleteConfirmation": "Ви впевнені, що хочете видалити цей проект?"
 }
