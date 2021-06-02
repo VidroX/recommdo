@@ -6,13 +6,16 @@ RUN mkdir -p /usr/src/frontend
 WORKDIR /usr/src/frontend
 
 COPY package*.json yarn.lock ./
+
 RUN yarn global add pm2
-RUN yarn --production=true
+RUN yarn
 
 COPY . .
 
-RUN yarn build
+ENV NODE_ENV=production
+
+RUN yarn --production=true build
 
 EXPOSE 3000
 
-CMD [ "pm2-runtime", "start", "yarn", "start" ]
+CMD [ "pm2-runtime", "npm", "--", "start" ]

@@ -24,10 +24,14 @@ APP_VERSION = os.getenv("APP_VERSION")
 
 # CORS
 CORS_ORIGINS = [
-    "http://host.docker.internal",
-    "http://host.docker.internal:8000",
-    "http://host.docker.internal:8080",
-    "http://host.docker.internal:3000",
+    "http://172.26.0.1",
+    "http://172.26.0.1:8000",
+    "http://172.26.0.1:8080",
+    "http://172.26.0.1:3000",
+    "https://172.26.0.1",
+    "https://172.26.0.1:8000",
+    "https://172.26.0.1:8080",
+    "https://172.26.0.1:3000",
     "http://localhost",
     "http://localhost:8000",
     "http://localhost:8080",

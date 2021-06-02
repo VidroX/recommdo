@@ -695,7 +695,10 @@ class ApiQuery(graphene.ObjectType):
         recommendations = []
         db_recommendations = await db.engine.find(
             Recommendation,
-            Recommendation.user_id == user_id,
+            (
+                (Recommendation.user_id == user_id) &
+                (Recommendation.project == project.id)
+            ),
             sort=query.desc(Recommendation.score)
         )
 

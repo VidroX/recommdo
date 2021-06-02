@@ -27,7 +27,7 @@ def filter_file(files, file_type="metadata"):
     return filter(iterator_func, files)
 
 
-def get_engine():
+def get_engine() -> AIOEngine:
     client = AsyncIOMotorClient(
         host=settings.DATABASE_HOST,
         port=int(settings.DATABASE_PORT),
@@ -55,32 +55,19 @@ async def import_and_analyze_purchases_async(
 
     purchases = []
     for (index, unq) in enumerate(dataset[0][0]):
-        purchases.append(
-            Purchase(
-                user_id=int(unq[0]),
-                purchase_id=unq[1],
-                weight=int(dataset[0][1][index]),
-                project=project_template
-            )
+        purchase = Purchase(
+            user_id=int(unq[0]),
+            purchase_id=unq[1],
+            weight=int(dataset[0][1][index]),
+            project=project_template
         )
+        purchases.append(purchase.doc())
 
-    if len(purchases) >= 8:
-        split_dataset = np.array_split(np.array(purchases), 8)
-    elif len(purchases) >= 2:
-        split_dataset = np.array_split(np.array(purchases), 2)
-    else:
-        split_dataset = np.array_split(np.array(purchases), 1)
+    await engine.get_collection(Purchase).insert_many(purchases, ordered=False)
 
-    gather_list = []
-    for data in split_dataset:
-        gather_list.append(engine.save_all(data.tolist()))
-    await asyncio.gather(*gather_list)
-
-    if change_analysis_bool:
-        project_template.analyzed = True
     if change_import_bool:
         project_template.imported = True
-    if change_import_bool or change_analysis_bool:
+    if change_import_bool:
         await engine.save(project_template)
 
     print('Import DataSet Task Ended')
@@ -108,7 +95,7 @@ def get_user_item_weight(score: float) -> int:
 
     if score >= 0.019:
         user_item_weight = 2
-    if score >= 0.07:
+    if score >= 0.04:
         user_item_weight = 3
     if score >= 0.49:
         user_item_weight = 4
@@ -129,15 +116,14 @@ async def get_all_recommendations(project, model, user_items, user_indexes, item
             real_user = user_indexes[user].item()
             real_item = item_indexes[recommendation[0]].item()
             score = recommendation[1]
-            all_recommendations.append(
-                Recommendation(
-                    user_id=real_user,
-                    project=project,
-                    item_id=real_item,
-                    score=score,
-                    user_item_weight=get_user_item_weight(score)
-                )
+            recommendation_model = Recommendation(
+                user_id=real_user,
+                project=project,
+                item_id=real_item,
+                score=score,
+                user_item_weight=get_user_item_weight(score)
             )
+            all_recommendations.append(recommendation_model.doc())
 
     return all_recommendations
 
@@ -223,23 +209,13 @@ async def analyze_purchases_async(
         project_metadata_info
     )
 
-    if len(recommendations) >= 8:
-        split_dataset = np.array_split(np.array(recommendations), 8)
-    elif len(recommendations) >= 2:
-        split_dataset = np.array_split(np.array(recommendations), 2)
-    else:
-        split_dataset = np.array_split(np.array(recommendations), 1)
-
-    gather_list = []
-    for data in split_dataset:
-        gather_list.append(engine.save_all(data.tolist()))
-    await asyncio.gather(*gather_list)
+    await engine.get_collection(Recommendation).insert_many(recommendations, ordered=False)
 
     if change_analysis_bool:
         project_template.analyzed = True
     if change_import_bool:
         project_template.imported = True
-    if change_import_bool or change_analysis_bool:
+    if change_analysis_bool or change_import_bool:
         await engine.save(project_template)
     print('DataSet Analysis Task Ended')
 
