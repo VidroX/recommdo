@@ -1,0 +1,188 @@
+# This file was generated based on ".graphqlconfig". Do not edit manually.
+
+schema {
+    query: ApiQuery
+    mutation: ApiMutation
+}
+
+"An object with an ID"
+interface Node {
+    "The ID of the object."
+    id: ID!
+}
+
+type AccessLevelModel {
+    description: String!
+    id: ID!
+    isStaff: Boolean!
+    level: Int!
+    name: String!
+}
+
+type ApiMutation {
+    analyzeProject(projectId: String!, projectMetadata: ProjectMetadataInput!): ReAnalyze
+    createProject(files: [Upload]!, projectMetadata: ProjectMetadataInput!, projectName: String!): CreateProject
+    deleteProject(projectId: String!): DeleteProject
+    login(email: String!, password: String!): Login
+    refresh: Refresh
+    register(accessLevel: Int = 1, email: String!, firstName: String!, lastName: String!, middleName: String = "", password: String!): Register
+    removeUser(userId: ID!): RemoveUser
+    updateProjectAllowedUsers(projectId: String!, users: [ID]!): UpdateProjectAllowedUsers
+    updateProjectName(name: String!, projectId: String!): UpdateProjectName
+}
+
+type ApiQuery {
+    accessLevels: [AccessLevelModel]
+    allMetadata(projectId: String!): [MetadataModel]
+    "The ID of the object"
+    node(id: ID!): Node
+    project(projectId: String!): ProjectModel
+    projectPurchases(orderBy: String, page: Int = 1, projectId: String!, search: Float): PurchasesPaginationModel
+    projectRecommendations(itemId: String! = "all", orderBy: String, page: Int = 1, projectId: String!, search: Float, stars: Int): RecommendationsPaginationModel
+    projectStatistics(itemId: Int, projectId: String!): ProjectStatisticsModel
+    projects: [ProjectModel]
+    user(userId: ID): UserModel
+    userPurchases(projectId: String!, userId: Int!): [PurchaseModel]
+    userRecommendations(projectId: String!, userId: Int!): [RecommendationModel]
+    users(skipAdmins: Boolean = false): [UserModel]
+}
+
+type CreateProject {
+    project: ProjectModel
+}
+
+type DeleteProject {
+    message: String
+}
+
+type FileLocationModel {
+    fileType: String!
+    id: ID!
+    location: String!
+    name: String!
+}
+
+type Login {
+    tokens: TokenData
+    user: UserModel
+}
+
+type MetadataModel {
+    id: ID!
+    metaId: Int!
+    name: String
+    project: ProjectModel!
+}
+
+type ProjectInnerStatisticModel {
+    count: Int!
+    percentage: Float!
+    stars: Int!
+}
+
+type ProjectModel {
+    allowedUsers: [UserModel]!
+    analyzed: Boolean!
+    deleted: Boolean!
+    files: [FileLocationModel]!
+    id: ID!
+    imported: Boolean!
+    name: String!
+}
+
+type ProjectStatisticsModel {
+    metadata: MetadataModel
+    project: ProjectModel!
+    statistics: [ProjectInnerStatisticModel]!
+}
+
+type PurchaseModel {
+    id: ID!
+    metadata: MetadataModel
+    project: ProjectModel!
+    userId: Int!
+    weight: Int
+}
+
+type PurchasesPaginationModel {
+    currentPage: Int
+    pageAmount: Int
+    purchases: [PurchaseModel]!
+    shownEntries: Int
+    totalEntries: Int
+}
+
+type ReAnalyze {
+    message: String
+}
+
+type RecommendationModel {
+    id: ID!
+    metadata: MetadataModel!
+    project: ProjectModel!
+    score: Float!
+    userId: Int!
+    userItemWeight: Int!
+}
+
+type RecommendationsPaginationModel {
+    currentPage: Int
+    pageAmount: Int
+    recommendations: [RecommendationModel]!
+    shownEntries: Int
+    totalEntries: Int
+}
+
+type Refresh {
+    tokens: TokenData
+}
+
+type Register {
+    tokens: TokenData
+    user: UserModel
+}
+
+type RemoveUser {
+    message: String
+}
+
+type TokenData {
+    accessToken: String
+    refreshToken: String
+}
+
+type UpdateProjectAllowedUsers {
+    message: String
+}
+
+type UpdateProjectName {
+    message: String
+}
+
+type UserModel {
+    accessLevel: AccessLevelModel!
+    deleted: Boolean!
+    email: String!
+    firstName: String!
+    id: ID!
+    lastName: String!
+    middleName: String
+}
+
+input ProjectMetadataInput {
+    metaFileName: String!
+    metaIdHeader: String!
+    metaNameHeader: String
+    subscriptionsEndAtHeader: String!
+    subscriptionsFileName: String!
+    subscriptionsMetaIdHeader: String!
+    subscriptionsStartFromHeader: String!
+    subscriptionsUserIdHeader: String!
+}
+
+
+"""
+Create scalar that ignores normal serialization/deserialization, since
+that will be handled by the multipart request spec
+"""
+scalar Upload
